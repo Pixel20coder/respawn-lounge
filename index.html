@@ -1,0 +1,2247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Respawn Lounge | 3D Gaming Cafe</title>
+<meta name="description" content="Demo gaming cafe site with a 3D floor map, live seat availability and a mock payment booking window.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+<style>
+:root{
+  --paper:#F4F4F0;--paper2:#E9E7E1;--ink:#0D0D0D;--red:#E61919;--mute:#55554F;
+  --b:2px solid var(--ink);--h:1px solid var(--ink);
+  --ease:cubic-bezier(0.23,1,0.32,1);
+  --z-nav:10;--z-dialog:30;--z-toast:40;
+}
+*{box-sizing:border-box;margin:0;border-radius:0}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{background:var(--paper);color:var(--ink);font-family:"Archivo",system-ui,sans-serif;font-size:1rem;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::after{content:"";position:fixed;inset:0;z-index:var(--z-toast);pointer-events:none;opacity:.07;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+a{color:inherit}
+button{font:inherit;color:inherit}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;letter-spacing:.04em}
+.wrap{width:min(1320px,100% - 32px);margin-inline:auto}
+p{max-width:62ch;color:var(--mute)}
+.red{color:var(--red)}
+
+/* type */
+h1,h2,h3{font-weight:900;text-transform:uppercase;text-wrap:balance}
+h1,h2{font-stretch:112%;letter-spacing:-0.045em;line-height:.9}
+h1{font-size:clamp(3rem,8.2vw,8rem)}
+h2{font-size:clamp(2.4rem,6vw,5.5rem)}
+h3{font-size:1.15rem;letter-spacing:-.01em;line-height:1.1}
+.lab,.fld{font-family:"JetBrains Mono",monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+
+/* controls */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 22px;border:var(--b);background:var(--paper);color:var(--ink);font-family:"JetBrains Mono",monospace;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;text-decoration:none;cursor:pointer;transition:background .12s,color .12s,transform .08s}
+.btn:hover{background:var(--ink);color:var(--paper)}
+.btn:active{transform:translate(2px,2px)}
+.btn.primary{background:var(--red);color:#fff}
+.btn.primary:hover{background:var(--ink)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn:disabled:hover{background:var(--paper);color:var(--ink)}
+.btn.primary:disabled:hover{background:var(--red);color:#fff}
+.btn.sm{min-height:40px;padding:0 14px;font-size:.72rem}
+input,select{min-height:48px;padding:0 12px;border:var(--b);background:var(--paper);color:var(--ink);font-family:"JetBrains Mono",monospace;font-size:.85rem;width:100%}
+input::placeholder{color:#6b6b64}
+input:hover,select:hover{background:#fff}
+input:focus-visible,select:focus-visible{outline:3px solid var(--red);outline-offset:0}
+.fld,.lab{display:grid;gap:6px}
+.err{color:var(--red);font-size:.8rem;min-height:1.2em;font-weight:700;font-family:"JetBrains Mono",monospace}
+[aria-invalid="true"]{border-color:var(--red)}
+.msg{font-size:.8rem;min-height:1.2em;color:var(--mute);font-family:"JetBrains Mono",monospace}
+.msg.ok{color:var(--ink);font-weight:700}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:0;border:var(--b)}
+.seg.m3{grid-template-columns:repeat(3,1fr)}
+.seg.m4{grid-template-columns:repeat(4,1fr)}
+.seg button{min-height:52px;padding:0 12px;border:0;border-right:var(--b);background:var(--paper);cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:.76rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;text-align:left;display:grid;align-content:center;transition:background .12s,color .12s}
+.seg button:last-child{border-right:0}
+.seg button small{font-weight:500;color:var(--mute);font-size:.68rem}
+.seg button:hover{background:var(--paper2)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.seg button[aria-pressed="true"] small{color:#c9c9c2}
+.note{font-size:.8rem;border:var(--b);padding:12px 14px;background:var(--paper2);font-family:"JetBrains Mono",monospace;line-height:1.5}
+.note b{color:var(--red)}
+.banner{border:var(--b);border-color:var(--red);background:var(--red);color:#fff;padding:12px 14px;font-weight:700;font-size:.85rem;font-family:"JetBrains Mono",monospace}
+.promo{display:flex;gap:0}
+.promo input{flex:1;min-width:0;text-transform:uppercase}
+.promo .btn{border-left:0}
+
+/* chrome */
+.progress{position:fixed;top:0;left:0;right:0;height:4px;background:var(--red);transform-origin:0 50%;transform:scaleX(0);z-index:var(--z-toast);animation:prog linear both;animation-timeline:scroll(root)}
+@keyframes prog{to{transform:scaleX(1)}}
+.strip{background:var(--ink);color:var(--paper);padding:9px 16px;text-align:center;font-size:.72rem;text-transform:uppercase;letter-spacing:.1em}
+.strip a{color:var(--paper);text-decoration:underline;text-underline-offset:3px}
+nav{position:sticky;top:0;z-index:var(--z-nav);background:var(--paper);border-bottom:var(--b)}
+nav .wrap{display:flex;align-items:stretch;justify-content:space-between;height:60px}
+.logo{display:flex;align-items:center;font-weight:900;font-stretch:112%;font-size:1.35rem;letter-spacing:-.04em;text-decoration:none;text-transform:uppercase}
+.logo sup{font-size:.55rem;margin-left:2px;color:var(--red)}
+.links{display:flex;align-items:stretch}
+.links a:not(.btn){display:flex;align-items:center;padding:0 14px;border-left:var(--h);text-decoration:none;font-family:"JetBrains Mono",monospace;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.links a:not(.btn):hover{background:var(--ink);color:var(--paper)}
+.links .btn{min-height:0;height:100%;border-top:0;border-bottom:0;border-right:0;margin-left:0}
+@media(max-width:1060px){.links a:not(.btn){display:none}}
+
+.sh{border-top:var(--b);border-bottom:var(--h);background:var(--paper)}
+.sh .wrap{display:flex;justify-content:space-between;gap:16px;padding:8px 0;font-size:.7rem;text-transform:uppercase;letter-spacing:.1em}
+.sec{position:relative;padding:0 0 96px}
+.grid-bg{background-image:linear-gradient(rgba(13,13,13,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(13,13,13,.09) 1px,transparent 1px);background-size:64px 64px;background-position:-1px -1px}
+.paper2{background:var(--paper2)}
+.haz{height:16px;border-block:var(--b);background:repeating-linear-gradient(-45deg,var(--ink) 0 14px,var(--paper) 14px 28px)}
+.barcode{height:44px;width:200px;background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 5px,var(--ink) 5px 6px,transparent 6px 10px,var(--ink) 10px 14px,transparent 14px 16px)}
+.sec>.wrap>h2,.sec .h2row{margin-top:56px}
+.lead{font-size:1.1rem;color:var(--ink);max-width:46ch}
+
+/* halftone photos */
+.ht{position:relative;overflow:hidden;border:var(--b);background:var(--ink)}
+.ht img{width:100%;height:100%;object-fit:cover;display:block;filter:grayscale(1) contrast(1.3) brightness(1.05)}
+.ht::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle,#000 .9px,transparent 1.5px) 0 0/4px 4px;mix-blend-mode:multiply;opacity:.38}
+.ht::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:var(--red);mix-blend-mode:multiply;opacity:0;transition:opacity .25s}
+.ht:hover::before{opacity:.9}
+figure{margin:0}
+figcaption{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;padding:8px 0 0;color:var(--mute);font-family:"JetBrains Mono",monospace}
+
+/* hero */
+.hero{border-top:0;position:relative}
+.hero-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:0;border-left:var(--b);border-right:var(--b)}
+.hero-main{padding:48px 32px 32px 0;display:grid;gap:28px;align-content:start;padding-left:24px}
+.hero-main .tag{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em}
+.hero-main h1 span{color:var(--red)}
+.cta{display:flex;gap:12px;flex-wrap:wrap}
+.stage{position:relative;border-left:var(--b);min-height:460px;display:grid;background-image:linear-gradient(rgba(13,13,13,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(13,13,13,.09) 1px,transparent 1px);background-size:40px 40px}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stage figcaption{position:absolute;left:12px;bottom:10px;padding:0;z-index:1}
+.stage::before,.stage::after{content:"+";position:absolute;font-family:"JetBrains Mono",monospace;font-size:1.2rem;font-weight:700;line-height:1}
+.stage::before{top:8px;left:10px}.stage::after{top:8px;right:10px}
+.nogl::after{content:"3D VIEW NEEDS WEBGL. USE THE SEAT LIST.";position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.08em;color:var(--mute)}
+.nogl canvas{display:none}
+.specs{border-top:var(--b);border-bottom:var(--b);display:grid;grid-template-columns:repeat(4,1fr)}
+.specs div{padding:16px 24px;border-right:var(--h);display:grid;gap:2px}
+.specs div:last-child{border:0}
+.specs b{font-size:clamp(1.8rem,3.4vw,3rem);font-weight:900;font-stretch:112%;letter-spacing:-.04em;line-height:1}
+.specs span{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--mute);font-family:"JetBrains Mono",monospace}
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr}.stage{border-left:0;border-top:var(--b);min-height:380px}.specs{grid-template-columns:1fr 1fr}.specs div:nth-child(2){border-right:0}.specs div:nth-child(-n+2){border-bottom:var(--h)}}
+
+/* quick bar */
+.qbar{border-bottom:var(--b);background:var(--paper)}
+.qbar-box{display:grid;grid-template-columns:1fr 1.2fr 1fr 1fr auto;border-left:var(--b);border-right:var(--b)}
+.qbar-box .fld{padding:12px 16px;border-right:var(--h);gap:4px}
+.qbar-box select,.qbar-box input{border:0;border-bottom:var(--b);min-height:40px;padding:0;background:transparent;font-weight:700}
+.qbar-box .btn{height:100%;border:0;min-height:72px}
+@media(max-width:900px){.qbar-box{grid-template-columns:1fr 1fr}.qbar-box .btn{grid-column:1/-1}.qbar-box .fld{border-bottom:var(--h)}}
+
+/* ticker */
+.marquee{overflow:hidden;background:var(--red);color:var(--ink);border-bottom:var(--b);padding:12px 0}
+.marquee .track{display:flex;gap:40px;width:max-content;animation:slide 38s linear infinite;font-weight:900;font-stretch:112%;text-transform:uppercase;letter-spacing:-.01em;font-size:1.25rem}
+.marquee .track span::after{content:"///";margin-left:40px;color:var(--paper)}
+@keyframes slide{to{transform:translateX(-50%)}}
+
+/* lounge */
+.lounge{display:grid;grid-template-columns:1fr 1.25fr;gap:48px;align-items:start;margin-top:56px}
+.bignum{font-weight:900;font-stretch:125%;font-size:clamp(9rem,24vw,22rem);line-height:.75;letter-spacing:-.07em;color:transparent;-webkit-text-stroke:2px var(--ink);margin-left:-.04em}
+.lounge h2{margin:24px 0 20px}
+.mosaic{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.mosaic .a{grid-row:span 2}
+.mosaic figure{display:grid;grid-template-rows:1fr auto}
+.mosaic .ht{min-height:200px}
+.mosaic .a .ht{min-height:420px}
+.fact{border:var(--b);padding:20px;display:grid;gap:8px;align-content:end;background:var(--ink);color:var(--paper);min-height:200px}
+.fact b{font-size:2.6rem;font-weight:900;font-stretch:112%;letter-spacing:-.04em;line-height:1}
+.fact p{color:#c9c9c2;font-size:.9rem}
+@media(max-width:860px){.lounge{grid-template-columns:1fr}.bignum{font-size:34vw}}
+
+/* floor */
+.floor-head{display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;margin:56px 0 28px}
+.floor-head p{margin-top:16px}
+.toolbar{display:flex;gap:0;flex-wrap:wrap;border:var(--b)}
+.toolbar .fld{padding:8px 12px;border-right:var(--h);gap:2px;min-width:120px}
+.toolbar .fld:last-child{border:0}
+.toolbar input,.toolbar select{border:0;border-bottom:var(--h);min-height:36px;padding:0;background:transparent;font-weight:700}
+.floor-grid{display:grid;grid-template-columns:1fr 320px;gap:0;border:var(--b)}
+.canvas3d{position:relative;height:580px;background:#E4E1D9;border-right:var(--b);overflow:hidden;touch-action:none}
+.views{position:absolute;top:0;left:0;display:flex;z-index:2;border-right:var(--b);border-bottom:var(--b);background:var(--paper)}
+.views button{min-height:40px;padding:0 14px;border:0;border-right:var(--h);background:var(--paper);cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.views button:last-child{border:0}
+.views button:hover{background:var(--ink);color:var(--paper)}
+.canvas3d canvas{display:block;width:100%;height:100%}
+.canvas3d .hint{position:absolute;right:12px;bottom:10px;font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mute)}
+.tip{position:absolute;left:0;top:0;pointer-events:none;opacity:0;background:var(--ink);color:var(--paper);padding:6px 10px;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;z-index:2}
+.side{padding:24px;display:flex;flex-direction:column;gap:18px;background:var(--paper)}
+.side h3{font-size:.8rem;letter-spacing:.1em;font-family:"JetBrains Mono",monospace}
+.selcard{display:grid;gap:10px}
+.selcard .big{font-size:3rem;font-weight:900;font-stretch:112%;letter-spacing:-.05em;line-height:1}
+.selcard .row{display:flex;justify-content:space-between;font-size:.8rem;border-top:var(--h);padding-top:8px;font-family:"JetBrains Mono",monospace;text-transform:uppercase}
+.selcard .row b{font-weight:700}
+.legend{display:grid;gap:8px;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;font-family:"JetBrains Mono",monospace;margin-top:auto}
+.legend i{display:inline-block;width:14px;height:14px;margin-right:8px;vertical-align:-3px;border:2px solid var(--ink)}
+.i-free{background:rgba(13,13,13,.2)}.i-busy{background:var(--red)}.i-sel{background:#fff}
+details.seatlist{margin-top:16px;border:var(--b)}
+details.seatlist summary{min-height:52px;display:flex;align-items:center;padding:0 16px;cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:.76rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.seatbtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:0;border-top:var(--b)}
+.seatbtns button{min-height:44px;border:0;border-right:var(--h);border-bottom:var(--h);background:var(--paper);cursor:pointer;font-size:.72rem;font-weight:700}
+.seatbtns button:hover:not([disabled]){background:var(--ink);color:var(--paper)}
+.seatbtns button[disabled]{background:var(--red);color:#fff;cursor:not-allowed}
+.seatbtns button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+@media(max-width:960px){.floor-grid{grid-template-columns:1fr}.canvas3d{height:440px;border-right:0;border-bottom:var(--b)}}
+
+/* hub */
+.tabs{display:flex;border:var(--b);margin:40px 0 28px;overflow-x:auto;background:var(--paper)}
+.tabs button{min-height:56px;padding:0 24px;background:var(--paper);border:0;border-right:var(--b);font-family:"JetBrains Mono",monospace;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;white-space:nowrap;flex:1}
+.tabs button:last-child{border-right:0}
+.tabs button:hover{background:var(--paper2)}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+.occ-top{display:grid;grid-template-columns:repeat(4,1fr);border:var(--b);margin-bottom:32px}
+.occ-top div{padding:20px;border-right:var(--h);display:grid;gap:4px}
+.occ-top div:last-child{border:0}
+.occ-top b{font-size:clamp(1.8rem,3.4vw,3rem);font-weight:900;font-stretch:112%;letter-spacing:-.04em;line-height:1}
+.occ-top span{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);font-family:"JetBrains Mono",monospace}
+@media(max-width:760px){.occ-top{grid-template-columns:1fr 1fr}}
+.sub{margin:32px 0 10px;font-size:.8rem;letter-spacing:.1em;font-family:"JetBrains Mono",monospace}
+.heatwrap{overflow-x:auto;border:var(--b);background:var(--paper)}
+.heat{display:grid;grid-template-columns:100px repeat(16,minmax(44px,1fr));gap:1px;min-width:840px;align-items:stretch;background:var(--ink)}
+.heat>*{background:var(--paper)}
+.heat .h{font-size:.68rem;color:var(--mute);text-align:center;padding:6px 0}
+.heat .rl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:0 8px;display:flex;align-items:center;font-family:"JetBrains Mono",monospace}
+.heat button{min-height:44px;border:0;cursor:pointer;font-size:.8rem;font-weight:700;transition:transform .08s}
+.heat button:active{transform:scale(.96)}
+.heat button:disabled{opacity:.3;cursor:not-allowed}
+.heat button.cur{box-shadow:inset 0 0 0 3px var(--red)}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:1px;background:var(--ink);border:var(--b)}
+.chip{background:var(--paper);padding:10px 12px;display:grid;gap:2px;font-size:.75rem}
+.chip b{font-size:.95rem}
+.chip small{font-family:"JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.06em;font-size:.66rem}
+.chip.busy{background:var(--red);color:#fff}
+.chip.free small{color:var(--mute)}
+.food-grid{display:grid;grid-template-columns:1fr 340px;gap:32px}
+.menu-row{display:grid;grid-template-columns:1fr auto auto;gap:16px;align-items:center;padding:14px 0;border-bottom:var(--h)}
+.menu-row h4{font-size:1.05rem;font-weight:800;text-transform:uppercase;letter-spacing:-.01em}
+.menu-row small{color:var(--mute);display:block;font-size:.85rem}
+.stepper{display:flex;align-items:center}
+.stepper button{width:44px;height:44px;border:var(--b);background:var(--paper);cursor:pointer;font-size:1.2rem;font-weight:700}
+.stepper button:hover{background:var(--ink);color:var(--paper)}
+.stepper button:active{transform:translate(1px,1px)}
+.stepper output{min-width:40px;text-align:center;font-weight:800;font-family:"JetBrains Mono",monospace;border-block:var(--b);height:44px;display:grid;place-items:center}
+.cart{position:sticky;top:76px;align-self:start;border:var(--b);background:var(--paper);padding:24px;display:grid;gap:14px}
+.cart h3{font-size:.8rem;letter-spacing:.1em;font-family:"JetBrains Mono",monospace}
+.cart .ln{display:flex;justify-content:space-between;gap:8px;font-size:.9rem}
+.cart .ln.m{color:var(--mute)}
+.cart .tot{border-top:var(--b);padding-top:12px;font-size:1.5rem;font-weight:900;font-stretch:112%;letter-spacing:-.03em;display:flex;justify-content:space-between}
+.order{border-bottom:var(--h);padding:18px 0;display:grid;gap:10px}
+.order .top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.order small{color:var(--mute)}
+.stg{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:var(--b);font-size:.66rem;font-family:"JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.06em}
+.stg span{padding:8px;border-right:var(--h);color:var(--mute)}
+.stg span:last-child{border:0}
+.stg span.on{background:var(--ink);color:var(--paper)}
+.ext{max-width:680px;display:grid;gap:16px}
+.empty{border:var(--b);border-style:dashed;padding:40px;text-align:center;display:grid;gap:12px;justify-items:center}
+@media(max-width:900px){.food-grid{grid-template-columns:1fr}.cart{position:static}}
+
+/* zones */
+.zone4{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:var(--b);margin-top:48px}
+.zc{border-right:var(--b);display:grid;grid-template-rows:auto 1fr}
+.zc:last-child{border-right:0}
+.zc .ht{border:0;border-bottom:var(--b);height:260px}
+.zi{padding:20px;display:grid;gap:10px;align-content:start}
+.zi .z{font-size:.68rem;letter-spacing:.1em;color:var(--mute)}
+.zi h3{font-size:1.6rem;font-weight:900;font-stretch:112%;letter-spacing:-.04em;line-height:.95}
+.zi p{font-size:.72rem;color:var(--mute);text-transform:uppercase;letter-spacing:.04em;font-family:"JetBrains Mono",monospace;line-height:1.5}
+.zi b{font-size:1.8rem;font-weight:900;font-stretch:112%;letter-spacing:-.04em}
+.zi b small{font-size:.7rem;font-family:"JetBrains Mono",monospace;font-weight:500;color:var(--mute);letter-spacing:.04em}
+.zi .btn{justify-self:start}
+@media(max-width:960px){.zone4{grid-template-columns:1fr 1fr}.zc:nth-child(2){border-right:0}.zc:nth-child(-n+2){border-bottom:var(--b)}}
+@media(max-width:560px){.zone4{grid-template-columns:1fr}.zc{border-right:0;border-bottom:var(--b)}.zc:last-child{border-bottom:0}}
+
+/* how */
+.how3{display:grid;grid-template-columns:repeat(3,1fr);border:var(--b);margin-top:48px}
+.how3 div{padding:28px;border-right:var(--b);display:grid;gap:12px;align-content:start;position:relative;overflow:hidden;min-height:340px}
+.how3 div:last-child{border-right:0}
+.how3 .n{font-size:clamp(7rem,14vw,12rem);font-weight:900;font-stretch:125%;line-height:.8;letter-spacing:-.07em;color:transparent;-webkit-text-stroke:2px var(--ink)}
+.how3 h3{font-size:1.5rem;font-weight:900;font-stretch:112%;letter-spacing:-.03em}
+.how3 p{font-size:.95rem}
+@media(max-width:860px){.how3{grid-template-columns:1fr}.how3 div{border-right:0;border-bottom:var(--b);min-height:0}.how3 div:last-child{border-bottom:0}}
+
+/* games */
+.gtools{display:flex;gap:16px;flex-wrap:wrap;align-items:end;margin:40px 0 16px}
+.gchips{display:flex;border:var(--b);margin-bottom:24px;overflow-x:auto}
+.gchips button{min-height:44px;padding:0 18px;border:0;border-right:var(--h);background:var(--paper);cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;flex:1}
+.gchips button:last-child{border-right:0}
+.gchips button:hover{background:var(--paper2)}
+.gchips button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1px;background:var(--ink);border:var(--b)}
+.g{position:relative;min-height:132px;padding:16px;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;overflow:hidden;background:var(--paper);transition:background .12s,color .12s}
+.g::after{content:attr(data-init);position:absolute;right:6px;top:-14px;font-weight:900;font-stretch:125%;font-size:5.5rem;line-height:1;color:transparent;-webkit-text-stroke:1.5px rgba(13,13,13,.35)}
+.g b{font-weight:900;font-stretch:108%;text-transform:uppercase;font-size:1.05rem;letter-spacing:-.02em;line-height:1.05;position:relative;z-index:1}
+.g small{font-family:"JetBrains Mono",monospace;font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);position:relative;z-index:1}
+.g:hover{background:var(--red);color:#fff}
+.g:hover small{color:#fff}
+.g:hover::after{-webkit-text-stroke-color:rgba(255,255,255,.7)}
+.g-empty{grid-column:1/-1;background:var(--paper);padding:32px;text-align:center;display:grid;gap:10px;justify-items:center}
+
+/* tournaments */
+.tour{display:grid;grid-template-columns:1.1fr .9fr;border:var(--b);margin-top:48px}
+.feat{background:var(--red);color:#fff;padding:32px;display:grid;gap:20px;align-content:start;border-right:var(--b)}
+.feat h3{font-size:clamp(1.6rem,3vw,2.6rem);font-weight:900;font-stretch:112%;letter-spacing:-.04em;line-height:.95}
+.feat p{color:#fff;opacity:.92}
+.cd{display:grid;grid-template-columns:repeat(4,1fr);border:2px solid #fff}
+.cd div{padding:14px 8px;text-align:center;border-right:1px solid #fff}
+.cd div:last-child{border:0}
+.cd b{display:block;font-size:clamp(2rem,4.4vw,3.6rem);font-weight:900;font-stretch:112%;letter-spacing:-.05em;line-height:1}
+.cd span{font-size:.66rem;text-transform:uppercase;letter-spacing:.1em;font-family:"JetBrains Mono",monospace}
+.feat-meta{display:flex;gap:8px 24px;flex-wrap:wrap;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em}
+.feat .btn{background:var(--paper);color:var(--ink);justify-self:start}
+.feat .btn:hover{background:var(--ink);color:var(--paper)}
+.feat .btn:disabled:hover{background:var(--paper);color:var(--ink)}
+.board{padding:0;display:grid;align-content:start;background:var(--paper)}
+.board .seg{border:0;border-bottom:var(--b)}
+.lb{list-style:none;padding:0;display:grid}
+.lb li{display:grid;grid-template-columns:48px 1fr auto;gap:12px;align-items:center;padding:14px 20px;border-bottom:var(--h)}
+.lb li:last-child{border:0}
+.lb .rk{font-size:1.4rem;font-weight:900;font-stretch:112%;letter-spacing:-.04em}
+.lb li:nth-child(1) .rk{color:var(--red)}
+.lb small{display:block;color:var(--mute);font-size:.66rem;font-family:"JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.06em}
+.lb .pt{font-weight:800}
+.evlist{margin-top:32px;border-top:var(--b)}
+.ev{display:grid;grid-template-columns:160px 1fr auto auto;gap:24px;align-items:center;padding:18px 0;border-bottom:var(--h)}
+.ev time{font-size:.8rem;font-weight:700;color:var(--red)}
+.ev h3{font-size:1.3rem;font-weight:900;font-stretch:108%;letter-spacing:-.02em}
+.ev .fee{font-size:.75rem;color:var(--mute);text-transform:uppercase}
+@media(max-width:900px){.tour{grid-template-columns:1fr}.feat{border-right:0;border-bottom:var(--b)}}
+@media(max-width:700px){.ev{grid-template-columns:1fr;gap:6px}}
+
+/* plans */
+.plans2{display:grid;grid-template-columns:1.1fr .9fr;border:var(--b);margin-top:48px}
+.payg{border-right:var(--b);display:grid;align-content:start}
+.pg{display:grid;grid-template-columns:1fr auto auto;gap:20px;align-items:center;padding:24px;border-bottom:var(--b)}
+.pg.hot{background:var(--paper2)}
+.pg h3{font-size:1.4rem;font-weight:900;font-stretch:112%;letter-spacing:-.03em}
+.pg p{font-size:.88rem;margin-top:4px}
+.pg b{font-size:2.2rem;font-weight:900;font-stretch:112%;letter-spacing:-.05em;white-space:nowrap;line-height:1}
+.pg small{font-size:.7rem;font-weight:500;color:var(--mute);font-family:"JetBrains Mono",monospace;letter-spacing:.04em}
+.promo-note{padding:16px 24px;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;max-width:none}
+.member{display:grid;align-content:start}
+.member .seg{border:0;border-bottom:var(--b)}
+.mbody{padding:24px;display:grid;gap:18px}
+.mprice{font-size:3.4rem;font-weight:900;font-stretch:112%;letter-spacing:-.05em;line-height:1}
+.mprice small{font-size:.8rem;font-weight:500;color:var(--mute);font-family:"JetBrains Mono",monospace;letter-spacing:.04em}
+.perks{list-style:none;padding:0;display:grid;gap:0;border-top:var(--h)}
+.perks li{padding:10px 0;border-bottom:var(--h);font-size:.92rem}
+.perks li::before{content:">>> ";color:var(--red);font-family:"JetBrains Mono",monospace;font-weight:700;font-size:.75rem}
+.bill{display:flex;gap:0;align-items:center;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;font-family:"JetBrains Mono",monospace}
+.bill span{margin-right:12px}
+.bill button{min-height:36px;padding:0 12px;border:var(--b);background:var(--paper);cursor:pointer;font-size:.68rem;font-weight:700;font-family:inherit;text-transform:uppercase;letter-spacing:.06em}
+.bill button+button{border-left:0}
+.bill button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.mstat{font-size:.72rem;color:var(--red);font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-family:"JetBrains Mono",monospace}
+@media(max-width:900px){.plans2{grid-template-columns:1fr}.payg{border-right:0;border-bottom:var(--b)}.pg{grid-template-columns:1fr auto}.pg .btn{grid-column:1/-1}}
+
+/* quotes */
+.quotes{display:grid;grid-template-columns:repeat(3,1fr);border:var(--b);margin-top:48px}
+.q{margin:0;padding:32px 28px;border-right:var(--b);display:grid;gap:24px;align-content:space-between}
+.q:last-child{border-right:0}
+.q p{color:var(--ink);font-size:1.3rem;line-height:1.3;font-weight:700;max-width:none;letter-spacing:-.01em}
+.q footer{display:grid;gap:2px;border-top:var(--h);padding-top:12px}
+.q footer b{text-transform:uppercase;font-size:.9rem}
+.q footer span{color:var(--mute);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;font-family:"JetBrains Mono",monospace}
+@media(max-width:900px){.quotes{grid-template-columns:1fr}.q{border-right:0;border-bottom:var(--b)}.q:last-child{border-bottom:0}}
+
+/* bookings */
+.bk-list{margin-top:40px;border:var(--b);display:grid}
+.bk{display:grid;grid-template-columns:130px 1fr auto auto;gap:20px;align-items:center;padding:18px 20px;border-bottom:var(--h);background:var(--paper)}
+.bk:last-child{border:0}
+.bk .id{color:var(--red);font-size:.8rem;font-weight:700}
+.bk small{display:block;color:var(--mute);font-size:.82rem}
+@media(max-width:700px){.bk{grid-template-columns:1fr;gap:8px}}
+#bklist .empty{margin-top:40px;background:var(--paper)}
+
+/* faq */
+.faq details{border-bottom:var(--b)}
+.faq details:first-of-type{border-top:var(--b);margin-top:40px}
+.faq summary{min-height:68px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-weight:900;font-stretch:108%;text-transform:uppercase;letter-spacing:-.02em;font-size:1.25rem;list-style:none;gap:16px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font-family:"JetBrains Mono",monospace;font-size:1.6rem}
+.faq details[open] summary::after{content:"-";color:var(--red)}
+.faq details[open] summary{color:var(--red)}
+.faq details p{padding-bottom:22px}
+
+/* visit */
+.visit-grid{display:grid;grid-template-columns:1.1fr .9fr;border:var(--b);margin-top:48px}
+.visit-grid>div{padding:32px;border-right:var(--b);display:grid;gap:18px;align-content:start}
+.status{font-size:.8rem;color:var(--red);font-weight:700;text-transform:uppercase}
+.hours{display:grid;border-top:var(--b)}
+.hours div{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:var(--h)}
+.hours dt{color:var(--mute);font-size:.9rem}
+.hours dd{margin:0;font-weight:700;font-size:.85rem}
+.news{padding:32px;display:grid;gap:16px;align-content:start;background:var(--paper2)}
+.news h3{font-size:1.5rem;font-weight:900;font-stretch:112%;letter-spacing:-.03em}
+@media(max-width:860px){.visit-grid{grid-template-columns:1fr}.visit-grid>div{border-right:0;border-bottom:var(--b)}}
+
+/* footer */
+.foot{border-top:var(--b);background:var(--ink);color:var(--paper);padding:48px 0 0;overflow:hidden}
+.foot p{color:#c9c9c2}
+.foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px}
+.foot-grid div{display:grid;gap:10px;align-content:start}
+.foot-grid b{font-family:"JetBrains Mono",monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--red)}
+.foot-grid a:not(.logo){text-decoration:none;font-size:.95rem}
+.foot-grid a:not(.logo):hover{color:var(--red)}
+.foot .barcode{background:repeating-linear-gradient(90deg,var(--paper) 0 2px,transparent 2px 5px,var(--paper) 5px 6px,transparent 6px 10px,var(--paper) 10px 14px,transparent 14px 16px);margin-top:12px}
+.mega{font-weight:900;font-stretch:125%;font-size:clamp(4rem,19vw,18rem);line-height:.8;letter-spacing:-.07em;text-transform:uppercase;white-space:nowrap;margin:40px 0 -.12em -.04em;color:var(--paper)}
+.fine{padding:14px 0;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;max-width:none;border-top:1px solid #444;margin-top:0;font-family:"JetBrains Mono",monospace}
+@media(max-width:760px){.foot-grid{grid-template-columns:1fr 1fr}}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:24px;translate:-50% 16px;opacity:0;pointer-events:none;z-index:var(--z-toast);background:var(--ink);color:var(--paper);border:2px solid var(--paper);font-weight:700;padding:12px 16px;display:flex;gap:16px;align-items:center;transition:opacity .15s,translate .15s var(--ease);max-width:calc(100% - 32px);font-family:"JetBrains Mono",monospace;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em}
+.toast.show{opacity:1;translate:-50% 0;pointer-events:auto}
+.toast button{background:none;border:0;font-weight:800;text-decoration:underline;cursor:pointer;min-height:32px;color:var(--red)}
+
+/* dialogs */
+dialog{position:fixed;margin:auto;padding:0;border:var(--b);background:var(--paper);color:var(--ink);width:min(980px,100% - 24px);max-height:min(92vh,880px);overflow:auto;z-index:var(--z-dialog)}
+dialog::backdrop{background:rgba(5,5,5,.7)}
+dialog[open]{animation:pop .14s var(--ease)}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}}
+.dlg-grid{display:grid;grid-template-columns:1fr 310px;min-height:520px}
+.dlg-main{padding:28px;display:flex;flex-direction:column;gap:20px;min-width:0}
+.dlg-head{display:flex;justify-content:space-between;align-items:center}
+.dlg-head h2{font-size:2.2rem}
+.x{width:44px;height:44px;border:var(--b);background:var(--paper);cursor:pointer;font-size:1.5rem;line-height:1}
+.x:hover{background:var(--ink);color:var(--paper)}
+.steps{list-style:none;padding:0;display:grid;grid-template-columns:repeat(4,1fr);border:var(--b);counter-reset:s}
+.steps li{counter-increment:s;font-size:.68rem;color:var(--mute);padding:8px 10px;border-right:var(--h);font-family:"JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.steps li:last-child{border:0}
+.steps li::before{content:"0" counter(s) " / "}
+.steps li.on{background:var(--ink);color:var(--paper)}
+.step{display:grid;gap:16px;align-content:start;flex:1}
+.step[hidden]{display:none}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.dlg-foot{display:flex;justify-content:space-between;gap:12px;padding-top:12px;border-top:var(--b)}
+.summary{background:var(--paper2);border-left:var(--b);padding:28px;display:flex;flex-direction:column;gap:16px}
+.summary h3{font-size:.8rem;letter-spacing:.1em;font-family:"JetBrains Mono",monospace}
+.summary dl{display:grid;gap:0;font-size:.85rem}
+.summary dl div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:var(--h)}
+.summary dt{color:var(--mute)}
+.summary dd{margin:0;font-weight:700;text-align:right}
+.summary .tot{border-top:var(--b);border-bottom:0;padding-top:14px;font-size:1.5rem;font-weight:900;font-stretch:112%;letter-spacing:-.03em}
+.summary .tot dd{color:var(--red)}
+.qr{display:grid;place-items:center;gap:8px;padding:16px;border:var(--b);background:#fff}
+.qr canvas{width:168px;height:168px;image-rendering:pixelated}
+.done{text-align:center;justify-items:center}
+.tick{width:72px;height:72px}
+.tick circle{fill:none;stroke:var(--ink);stroke-width:3;stroke-dasharray:190;stroke-dashoffset:190;animation:draw .5s var(--ease) forwards}
+.tick path{fill:none;stroke:var(--red);stroke-width:5;stroke-linecap:square;stroke-dasharray:50;stroke-dashoffset:50;animation:draw .3s .35s var(--ease) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.ticket{width:100%;display:grid;grid-template-columns:auto 1fr;gap:20px;text-align:left;align-items:center}
+.ticket dl{display:grid;gap:6px;font-size:.9rem}
+.ticket dt{color:var(--mute);font-size:.66rem;font-family:"JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.08em}
+.ticket dd{margin:0 0 4px;font-weight:700}
+.proc{position:absolute;inset:0;background:rgba(244,244,240,.96);display:grid;place-items:center;align-content:center;gap:16px;text-align:center;z-index:2;font-family:"JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.06em;font-size:.8rem}
+.spin{width:44px;height:44px;border:4px solid var(--paper2);border-top-color:var(--red);border-radius:50%;animation:rot .8s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+#qdlg{width:min(480px,100% - 24px)}
+.qbox{padding:24px;display:grid;gap:16px}
+
+/* mobile dock */
+.dock{display:none}
+@media(max-width:1060px){
+  .dock{display:grid;grid-template-columns:repeat(3,1fr);position:fixed;left:0;right:0;bottom:0;z-index:var(--z-nav);background:var(--paper);border-top:var(--b)}
+  .dock a{min-height:56px;display:grid;place-items:center;font-family:"JetBrains Mono",monospace;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;text-decoration:none;border-right:var(--h)}
+  .dock a:last-child{border:0}
+  .dock a:active{background:var(--ink);color:var(--paper)}
+  body{padding-bottom:56px}
+  .toast{bottom:72px}
+}
+@media(max-width:820px){.dlg-grid{grid-template-columns:1fr}.summary{border-left:0;border-top:var(--b)}.g2,.g3{grid-template-columns:1fr}.ticket{grid-template-columns:1fr;justify-items:center}}
+
+.rise{opacity:0;transform:translateY(12px);transition:opacity .4s var(--ease),transform .4s var(--ease)}
+.rise.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .rise{opacity:1;transform:none;transition:none}
+  .marquee .track,.progress{animation:none}
+  dialog[open]{animation:none}
+  .btn,.toast,.heat button,.g{transition:none}
+  .tick circle,.tick path{animation-duration:.01s;animation-delay:0s}
+  .spin{animation-duration:2.4s}
+}
+
+
+/* ===== retro layer ===== */
+.px{font-family:"Press Start 2P","JetBrains Mono",monospace}
+.strip,.sh .wrap,.hero-main .tag,.specs b,.cd b,.lb .rk,.occ-top b,.mprice,.zi .z,.steps li,.legend,.tabs button,.views button,.seg button,.btn,.gchips button{font-family:"Press Start 2P","JetBrains Mono",monospace}
+.strip,.sh .wrap{font-size:.56rem;letter-spacing:.06em;line-height:1.8}
+.hero-main .tag{font-size:.6rem;line-height:1.8}
+.hero-main .tag::after{content:"";display:inline-block;width:.6em;height:1em;background:var(--ink);margin-left:8px;vertical-align:-2px;animation:blink 1s steps(2,jump-none) infinite}
+@keyframes blink{50%{opacity:0}}
+.specs b,.occ-top b{font-size:clamp(1.3rem,2.6vw,2.2rem);letter-spacing:-.02em;font-stretch:100%;font-weight:400}
+.cd b{font-size:clamp(1.3rem,3vw,2.4rem);font-weight:400;letter-spacing:-.02em}
+.lb .rk{font-size:.9rem;font-weight:400}
+.mprice{font-size:2rem;font-weight:400;letter-spacing:-.04em}
+.btn,.seg button,.tabs button,.views button,.gchips button{font-size:.6rem;letter-spacing:.04em;line-height:1.6}
+.btn.sm{font-size:.55rem}
+.btn{box-shadow:4px 4px 0 var(--ink)}
+.btn:active{transform:translate(4px,4px);box-shadow:0 0 0 var(--ink)}
+.btn.sm{box-shadow:3px 3px 0 var(--ink)}
+.btn.sm:active{transform:translate(3px,3px)}
+.btn:disabled,.btn:disabled:hover{box-shadow:none}
+.links .btn,.qbar-box .btn,.stepper button,.x{box-shadow:none}
+.feat .btn{box-shadow:4px 4px 0 var(--ink)}
+.board::before{content:"HI-SCORE TABLE";font-family:"Press Start 2P",monospace;font-size:.6rem;padding:14px 20px;border-bottom:var(--b);background:var(--ink);color:var(--paper)}
+.ht::after{background:radial-gradient(circle,#000 1.1px,transparent 1.7px) 0 0/3px 3px;opacity:.42}
+.ht img{image-rendering:auto}
+.qr canvas,.stage canvas{image-rendering:pixelated}
+.marquee .track{font-family:"Press Start 2P",monospace;font-weight:400;font-stretch:100%;font-size:.95rem;letter-spacing:0}
+.q p{font-weight:600}
+.scan{position:fixed;inset:0;z-index:calc(var(--z-toast) - 1);pointer-events:none;background:repeating-linear-gradient(0deg,rgba(13,13,13,.045) 0 1px,transparent 1px 3px)}
+@media(prefers-reduced-motion:reduce){.hero-main .tag::after{animation:none}}
+
+.tip{white-space:normal;width:230px;line-height:1.65;font-size:.64rem;padding:10px 12px;font-family:"JetBrains Mono",monospace}
+.tip b{font-size:.78rem}
+.tip .tb{background:var(--red);color:#fff;padding:1px 5px}
+.tip .tf{background:var(--paper);color:var(--ink);padding:1px 5px}
+.specl{list-style:none;padding:0;border-top:var(--h);font-family:"JetBrains Mono",monospace;font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
+.specl li{padding:6px 0;border-bottom:var(--h)}
+</style>
+</head>
+<body>
+
+<div class="progress" aria-hidden="true"></div>
+<div class="scan" aria-hidden="true"></div>
+<div class="strip mono">Insert coin /// Happy hours Mon to Thu, 12:00 to 16:00 /// PCs at ₹90 an hour /// <a href="#floor">Press start</a></div>
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#top">Respawn<sup>®</sup></a>
+    <div class="links">
+      <a href="#floor">Book</a><a href="#hub" data-tab-link="food">Food</a><a href="#hub" data-tab-link="extend">Extend</a><a href="#games">Games</a><a href="#tournaments">Tournaments</a><a href="#plans">Plans</a><a href="#mybookings">Bookings</a>
+      <button class="btn primary sm" data-open>Book now</button>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-main">
+      <p class="tag mono">Player 1 ready / 20 PC + 10 PS5</p>
+      <h1>Book your rig.<br><span>Own the night.</span></h1>
+      <p class="lead">Pick your exact seat in 3D, pay in seconds, walk in and play. Open until 2 AM.</p>
+      <div class="cta">
+        <button class="btn primary" data-open>Press start</button>
+        <a class="btn" href="#games">Game library</a>
+      </div>
+    </div>
+    <figure class="stage" id="hero3d">
+      <canvas aria-label="3D gaming rig, decorative"></canvas>
+      <figcaption class="mono">Fig. 01 / Rig unit D-01</figcaption>
+    </figure>
+  </div>
+  <div class="wrap specs">
+    <div><b>20</b><span>PC rigs / 240Hz</span></div>
+    <div><b>10</b><span>PS5 pits / 4K OLED</span></div>
+    <div><b>1G</b><span>Fibre, wired per seat</span></div>
+    <div><b>02:00</b><span>Doors close, daily</span></div>
+  </div>
+</section>
+
+<div class="qbar">
+  <div class="wrap">
+    <div class="qbar-box" role="group" aria-label="Quick seat search">
+      <label class="fld">I want a
+        <select id="qb-type"><option value="pc">PC</option><option value="console">PS5</option></select>
+      </label>
+      <label class="fld">On<input type="date" data-bind="date"></label>
+      <label class="fld">From<select data-bind="start"></select></label>
+      <label class="fld">For<select data-bind="hours"></select></label>
+      <button class="btn primary" id="qb-go" type="button">Find seats >>></button>
+    </div>
+  </div>
+</div>
+
+<div class="marquee" aria-hidden="true"><div class="track" id="track"></div></div>
+
+<section class="sec grid-bg" id="lounge">
+  <div class="sh"><div class="wrap mono"><span>[ 01 ] The lounge</span><span>Fig. 02 to 04</span><span>Rev 2.6</span></div></div>
+  <div class="wrap lounge">
+    <div>
+      <div class="bignum" aria-hidden="true">30</div>
+      <h2 class="rise">Seats. One line. No queue.</h2>
+      <p class="rise">Thirty seats on a gigabit line, cold air conditioning and a kitchen that never makes you leave your match.</p>
+      <div class="barcode" style="margin-top:28px" aria-hidden="true"></div>
+    </div>
+    <div class="mosaic">
+      <figure class="a rise"><div class="ht"><img src="assets/crew.jpg" alt="Players focused on laptops and headsets in a dim gaming room" loading="lazy"></div><figcaption>Fig. 02 / Crew room</figcaption></figure>
+      <figure class="rise"><div class="ht"><img src="assets/pro-setup.jpg" alt="Dual monitor gaming desk with a tower and a tripod" loading="lazy"></div><figcaption>Fig. 03 / Pro desk</figcaption></figure>
+      <div class="fact rise"><b>0 ms</b><p>Of queue. Book a seat from your phone, show the code at the desk.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="floor" class="sec grid-bg">
+  <div class="sh"><div class="wrap mono"><span>[ 02 ] Floor map</span><span>Live seat availability</span><span>Drag / zoom / click</span></div></div>
+  <div class="wrap">
+    <div class="floor-head">
+      <div>
+        <h2 class="rise">Pick your seat</h2>
+        <p style="margin-top:16px" id="avail">Choose a time to see what is free.</p>
+      </div>
+      <div class="toolbar">
+        <label class="fld">Date<input type="date" data-bind="date"></label>
+        <label class="fld">Start<select data-bind="start"></select></label>
+        <label class="fld">Hours<select data-bind="hours"></select></label>
+      </div>
+    </div>
+
+    <div class="floor-grid">
+      <div class="canvas3d" id="floor3d">
+        <div class="views" role="group" aria-label="Camera views">
+          <button data-view="overview">Overview</button>
+          <button data-view="rig">PC hall</button>
+          <button data-view="console">PS5 pits</button>
+        </div>
+        <canvas aria-label="Interactive 3D floor map. A seat list is available below."></canvas>
+        <div class="tip mono" id="tip"></div>
+        <span class="hint mono">Drag to rotate / scroll to zoom / click a seat</span>
+      </div>
+      <aside class="side">
+        <h3>Your seat</h3>
+        <div class="selcard" id="selcard"></div>
+        <div class="legend">
+          <span><i class="i-free"></i>Free for your slot</span>
+          <span><i class="i-busy"></i>Taken</span>
+          <span><i class="i-sel"></i>Selected</span>
+        </div>
+      </aside>
+    </div>
+
+    <details class="seatlist">
+      <summary>Prefer a list? Pick a seat here</summary>
+      <div class="seatbtns" id="seatbtns"></div>
+    </details>
+  </div>
+</section>
+
+
+
+<section id="hub" class="sec paper2">
+  <div class="sh"><div class="wrap mono"><span>[ 03 ] Control room</span><span>Food / Extend</span><span>Rev 2.6</span></div></div>
+  <div class="wrap">
+    <h2 class="rise">Run your session</h2>
+    <div class="tabs" role="tablist" aria-label="Cafe services">
+      <button role="tab" id="tab-food" aria-controls="pan-food" aria-selected="true" data-tab="food">Order food</button>
+      <button role="tab" id="tab-extend" aria-controls="pan-extend" aria-selected="false" tabindex="-1" data-tab="extend">Extend session</button>
+    </div>
+
+    <div role="tabpanel" id="pan-food" aria-labelledby="tab-food">
+      <div class="food-grid">
+        <div>
+          <div class="seg m4" id="cats" role="group" aria-label="Menu categories"></div>
+          <div id="menu"></div>
+          <h3 class="sub" style="margin-top:56px">Your orders</h3>
+          <div id="orders"></div>
+        </div>
+        <aside class="cart" aria-label="Your order">
+          <h3 style="font-size:1rem;text-transform:uppercase">Your order</h3>
+          <div id="cart-lines"></div>
+          <label class="lab">Deliver to seat<select id="food-seat"></select></label>
+          <label class="lab">Payment
+            <select id="food-pay"><option value="bill">Add to seat bill</option><option value="now">Pay now (demo)</option></select>
+          </label>
+          <div class="tot"><span>Total</span><span id="cart-tot">₹0</span></div>
+          <button class="btn primary" id="place" disabled>Place order</button>
+        </aside>
+      </div>
+    </div>
+
+    <div role="tabpanel" id="pan-extend" aria-labelledby="tab-extend" hidden>
+      <div class="ext" id="ext-body"></div>
+    </div>
+  </div>
+</section>
+
+
+
+<div class="haz" aria-hidden="true"></div>
+
+<section class="sec" id="zones">
+  <div class="sh"><div class="wrap mono"><span>[ 04 ] Zones</span><span>Four rooms, one bill</span><span>Unit / Z-01 to Z-04</span></div></div>
+  <div class="wrap">
+    <h2 class="rise" style="margin-top:56px">Pick your zone</h2>
+    <div class="zone4 rise">
+      <article class="zc"><div class="ht"><img src="assets/pro-setup.jpg" alt="Pro gaming desk" loading="lazy"></div><div class="zi"><span class="z mono">Zone 01</span><h3>Rig Hall</h3><p>RTX 4070 / 240Hz / mech keys / 1ms mice</p><b>₹120 <small>/ HR</small></b><button class="btn primary sm" data-open data-type="pc">Book a PC</button></div></article>
+      <article class="zc"><div class="ht"><img src="assets/console-night.jpg" alt="Console on a TV" loading="lazy"></div><div class="zi"><span class="z mono">Zone 02</span><h3>Console Pits</h3><p>PS5 / 65" 4K OLED / couch for four</p><b>₹200 <small>/ HR</small></b><button class="btn primary sm" data-open data-type="console">Book a pit</button></div></article>
+      <article class="zc"><div class="ht"><img src="assets/crew.jpg" alt="Team playing together" loading="lazy"></div><div class="zi"><span class="z mono">Zone 03</span><h3>Bootcamp Room</h3><p>5 rigs / private / team comms / whiteboard</p><b>₹700 <small>/ HR</small></b><button class="btn sm" data-join="a Bootcamp Room slot">Ask for a slot</button></div></article>
+      <article class="zc"><div class="ht"><img src="assets/red-rig.jpg" alt="Streaming setup" loading="lazy"></div><div class="zi"><span class="z mono">Zone 04</span><h3>Stream Booth</h3><p>Capture card / cam / lights / soundproofed</p><b>₹250 <small>/ HR</small></b><button class="btn sm" data-join="a Stream Booth slot">Ask for a slot</button></div></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec paper2" id="how">
+  <div class="sh"><div class="wrap mono"><span>[ 05 ] Procedure</span><span>Three actions</span><span>Rev 2.6</span></div></div>
+  <div class="wrap">
+    <h2 class="rise" style="margin-top:56px">Hostel room to lobby in three taps</h2>
+    <div class="how3 rise">
+      <div><span class="n" aria-hidden="true">1</span><h3>Pick your seat</h3><p>Spin the 3D floor, choose the exact chair, see who else is in.</p></div>
+      <div><span class="n" aria-hidden="true">2</span><h3>Pay your way</h3><p>UPI, card or at the counter. Add food to the same bill.</p></div>
+      <div><span class="n" aria-hidden="true">3</span><h3>Walk in and play</h3><p>Show the QR at the desk. Your rig is warm and logged in.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec grid-bg" id="games">
+  <div class="sh"><div class="wrap mono"><span>[ 06 ] Library</span><span>22 titles installed</span><span>Patched before doors open</span></div></div>
+  <div class="wrap">
+    <h2 class="rise" style="margin-top:56px">Game library</h2>
+    <div class="gtools">
+      <label class="fld" style="flex:1;min-width:220px">Search<input id="gq" type="search" placeholder="Try Valorant" autocomplete="off"></label>
+      <div class="seg m3" id="gplat" role="group" aria-label="Platform" style="min-width:280px">
+        <button type="button" data-p="All" aria-pressed="true">All</button>
+        <button type="button" data-p="PC" aria-pressed="false">PC</button>
+        <button type="button" data-p="PS5" aria-pressed="false">PS5</button>
+      </div>
+    </div>
+    <div class="gchips" id="ggenre" role="group" aria-label="Genre"></div>
+    <div class="games" id="gamegrid"></div>
+  </div>
+</section>
+
+<section class="sec paper2" id="tournaments">
+  <div class="sh"><div class="wrap mono"><span>[ 07 ] Tournaments</span><span>Brackets open weekly</span><span>Prize pool paid at the desk</span></div></div>
+  <div class="wrap">
+    <h2 class="rise" style="margin-top:56px">Tournaments</h2>
+    <div class="tour rise">
+      <div class="feat">
+        <span class="mono" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.1em">Next up / Saturday 18:00</span>
+        <h3>Valorant 5v5 Scrims</h3>
+        <p>Open bracket, best of three, five maps. Bring your team or get matched at the desk.</p>
+        <div class="cd" id="cd" aria-live="off"></div>
+        <div class="feat-meta mono">
+          <span>Prize pool ₹25,000</span>
+          <span>Entry ₹500 per team</span>
+          <span id="slots">11 of 32 slots left</span>
+        </div>
+        <button class="btn" id="reg" type="button">Register your team</button>
+      </div>
+      <div class="board">
+        <div class="seg m3" id="lbtabs" role="group" aria-label="Leaderboard game">
+          <button type="button" data-g="Valorant" aria-pressed="true">Valorant</button>
+          <button type="button" data-g="FC 25" aria-pressed="false">FC 25</button>
+          <button type="button" data-g="Tekken 8" aria-pressed="false">Tekken 8</button>
+        </div>
+        <ol class="lb" id="lb"></ol>
+      </div>
+    </div>
+    <div class="evlist">
+      <div class="ev rise"><time class="mono">FRI / 8 PM</time><h3>Valorant 5v5 Scrims</h3><span class="fee mono">₹100 / player</span><button class="btn sm" data-join="Valorant 5v5 Scrims">Join</button></div>
+      <div class="ev rise"><time class="mono">SAT / 6 PM</time><h3>FC 25 Knockout Cup</h3><span class="fee mono">₹150 / player</span><button class="btn sm" data-join="FC 25 Knockout Cup">Join</button></div>
+      <div class="ev rise"><time class="mono">SUN / 4 PM</time><h3>Tekken Beginners Night</h3><span class="fee mono">Free entry</span><button class="btn sm" data-join="Tekken Beginners Night">Join</button></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="plans">
+  <div class="sh"><div class="wrap mono"><span>[ 08 ] Rates</span><span>GST extra</span><span>Rev 2.6</span></div></div>
+  <div class="wrap">
+    <h2 class="rise" style="margin-top:56px">Pay as you go, or join up</h2>
+    <div class="plans2 rise">
+      <div class="payg">
+        <div class="pg"><div><h3>PC hour</h3><p>Any free Rig Hall seat, water refills free.</p></div><b>₹120<small> / HR</small></b><button class="btn" data-open data-type="pc" data-hours="1">Book a PC</button></div>
+        <div class="pg hot"><div><h3>Night grind</h3><p>Six hours on one PC, noodles and a drink included.</p></div><b>₹600<small> / 6 HRS</small></b><button class="btn primary" data-open data-type="pc" data-hours="6">Book 6 hours</button></div>
+        <div class="pg"><div><h3>PS5 hour</h3><p>PS5 pit, 65" OLED, up to four players.</p></div><b>₹200<small> / HR</small></b><button class="btn" data-open data-type="console" data-hours="1">Book a PS5</button></div>
+        <p class="promo-note mono">Demo promo code LEVELUP: 10% off. GST 18% added at checkout.</p>
+      </div>
+      <div class="member">
+        <div class="seg m3" id="mtabs" role="group" aria-label="Membership tier">
+          <button type="button" data-t="rookie" aria-pressed="false">Rookie</button>
+          <button type="button" data-t="pro" aria-pressed="true">Pro</button>
+          <button type="button" data-t="legend" aria-pressed="false">Legend</button>
+        </div>
+        <div class="mbody" id="mbody"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec paper2" id="voices">
+  <div class="sh"><div class="wrap mono"><span>[ 09 ] Regulars</span><span>Unedited</span><span>Rev 2.6</span></div></div>
+  <div class="wrap">
+    <h2 class="rise" style="margin-top:56px">What regulars say</h2>
+    <div class="quotes rise">
+      <blockquote class="q"><p>“Booked PC-14 from my hostel room and walked into a warm rig. No queue, no arguing about who is next.”</p><footer><b>Aarav Mehta</b><span>3rd year CSE / Valorant</span></footer></blockquote>
+      <blockquote class="q"><p>“We scrim every Friday in the Bootcamp Room. The comms are clean and 240Hz makes a real difference.”</p><footer><b>Simran Kaur</b><span>Team captain / Friday scrims</span></footer></blockquote>
+      <blockquote class="q"><p>“Food reaches the pit before the next round loads. That is why I stopped going to the other cafe.”</p><footer><b>Rohan Yadav</b><span>FC 25 regular</span></footer></blockquote>
+    </div>
+  </div>
+</section>
+
+<section id="mybookings" class="sec grid-bg">
+  <div class="sh"><div class="wrap mono"><span>[ 10 ] Bookings</span><span>Stored in this browser</span><span>Cancel any time</span></div></div>
+  <div class="wrap">
+    <h2 class="rise">My bookings</h2>
+    <div id="bklist"></div>
+  </div>
+</section>
+
+
+
+<section class="sec faq" id="faq" style="padding-top:0">
+  <div class="sh"><div class="wrap mono"><span>[ 11 ] Questions</span><span>Read before asking the desk</span><span>Rev 2.6</span></div></div>
+  <div class="wrap">
+    <h2 class="rise" style="margin-top:56px">Questions</h2>
+    <details><summary>Is the payment real?</summary><p>No. This is a demo. The payment windows are simulated, no money moves and card details are never stored or sent anywhere.</p></details>
+    <details><summary>How long is my seat held?</summary><p>Fifteen minutes past your start time. After that it goes back on the floor.</p></details>
+    <details><summary>Can I bring friends?</summary><p>Yes. Book neighbouring seats, or use a console pit for up to four players. Teams of five or more should ask about the Bootcamp Room.</p></details>
+    <details><summary>Can I order food to my seat?</summary><p>Yes. Open the Order food tab, pick your seat and add it to your bill or pay now.</p></details>
+    <details><summary>Where is my booking saved?</summary><p>In this browser only. Clear your site data and it disappears.</p></details>
+  </div>
+</section>
+
+<div class="haz" aria-hidden="true"></div>
+
+<section class="sec grid-bg" id="visit">
+  <div class="sh"><div class="wrap mono"><span>[ 12 ] Visit</span><span>12 Sector 9, Your City</span><span>+91 91234 56780</span></div></div>
+  <div class="wrap">
+    <h2 class="rise" style="margin-top:56px">Come play</h2>
+    <div class="visit-grid rise" style="background:var(--paper)">
+      <div>
+        <p class="status mono" id="openstat"></p>
+        <dl class="hours">
+          <div><dt>Every day</dt><dd class="mono">10:00 to 02:00</dd></div>
+          <div><dt>Happy hours, Mon to Thu</dt><dd class="mono">12:00 to 16:00</dd></div>
+          <div><dt>Tournaments, Fri to Sun</dt><dd class="mono">From 16:00</dd></div>
+        </dl>
+        <div class="barcode" aria-hidden="true"></div>
+      </div>
+      <form class="news" id="news" novalidate>
+        <h3>Get tournament alerts</h3>
+        <p>One message when a bracket opens. No spam.</p>
+        <label class="lab">Email<input id="n-mail" type="email" autocomplete="email" placeholder="you@example.com" aria-describedby="e-n-mail"><span class="err" id="e-n-mail"></span></label>
+        <button class="btn primary" type="submit">Notify me</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div><a class="logo" href="#top" style="color:var(--paper)">Respawn<sup>®</sup></a><p>Gaming cafe demo with 3D seat booking, food ordering and session extensions.</p><div class="barcode" aria-hidden="true"></div></div>
+      <div><b>Play</b><a href="#floor">Book a seat</a><a href="#games">Games</a><a href="#tournaments">Tournaments</a></div>
+      <div><b>Cafe</b><a href="#hub" data-tab-link="food">Order food</a><a href="#hub" data-tab-link="extend">Extend session</a><a href="#plans">Memberships</a><a href="#faq">Questions</a></div>
+      <div><b>Visit</b><a href="#visit">Hours and address</a><a href="#mybookings">My bookings</a></div>
+    </div>
+    <div class="mega" aria-hidden="true">Respawn®</div>
+  </div>
+  <p class="fine wrap">Respawn Lounge is a demo, not a real business. Photos from Unsplash contributors.</p>
+</footer>
+
+
+<div class="dock" role="navigation" aria-label="Quick actions">
+  <a href="#floor">Book</a>
+  <a href="#hub" data-tab-link="food">Food</a>
+  <a href="#hub" data-tab-link="extend">Extend</a>
+</div>
+
+<dialog id="qdlg" aria-labelledby="q-title">
+  <div class="qbox">
+    <header class="dlg-head">
+      <h2 id="q-title" style="font-size:1.5rem">Pay</h2>
+      <button class="x" id="q-x" aria-label="Close payment window">&times;</button>
+    </header>
+    <div class="note"><b>Demo payment.</b> No money moves. Test card 4242 4242 4242 4242, any future date and CVV. 4000 0000 0000 0002 simulates a decline.</div>
+    <div class="seg m3" role="group" aria-label="Payment method">
+      <button type="button" data-qm="upi" aria-pressed="true">UPI</button>
+      <button type="button" data-qm="card" aria-pressed="false">Card</button>
+      <button type="button" data-qm="counter" aria-pressed="false">At counter</button>
+    </div>
+    <div class="banner" id="q-banner" role="alert" hidden></div>
+    <div data-qp="upi"><label class="lab">UPI ID<input id="q-upi" placeholder="name@bank" autocomplete="off" aria-describedby="e-q-upi"><span class="err" id="e-q-upi"></span></label></div>
+    <div data-qp="card" hidden class="g2" style="grid-template-columns:1fr 1fr">
+      <label class="lab" style="grid-column:1/-1">Card number<input id="q-num" inputmode="numeric" autocomplete="off" placeholder="1234 5678 9012 3456" aria-describedby="e-q-num"><span class="err" id="e-q-num"></span></label>
+      <label class="lab">Expiry<input id="q-exp" inputmode="numeric" autocomplete="off" placeholder="MM/YY" aria-describedby="e-q-exp"><span class="err" id="e-q-exp"></span></label>
+      <label class="lab">CVV<input id="q-cvv" inputmode="numeric" autocomplete="off" placeholder="123" aria-describedby="e-q-cvv"><span class="err" id="e-q-cvv"></span></label>
+    </div>
+    <p data-qp="counter" hidden>Pay at the front desk. We keep your request on the seat bill until then.</p>
+    <button class="btn primary" id="q-pay" type="button">Pay</button>
+    <b hidden id="q-amt"></b>
+  </div>
+  <div class="proc" id="q-proc" hidden>
+    <div class="spin" aria-hidden="true"></div>
+    <b>Processing payment...</b>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-t"></span><button id="toast-a" hidden></button></div>
+
+<!-- booking window -->
+<dialog id="dlg" aria-labelledby="dlg-title">
+  <div class="dlg-grid">
+    <div class="dlg-main">
+      <header class="dlg-head">
+        <h2 id="dlg-title">Book a seat</h2>
+        <button class="x" id="dlg-x" aria-label="Close booking window">&times;</button>
+      </header>
+      <ol class="steps" id="steps"><li>Session</li><li>Details</li><li>Payment</li><li>Done</li></ol>
+
+      <div class="step" data-step="1">
+        <div class="seg" role="group" aria-label="Device type">
+          <button type="button" data-type="pc" aria-pressed="true">PC<small>₹120 / hr</small></button>
+          <button type="button" data-type="console" aria-pressed="false">PS5<small>₹200 / hr</small></button>
+        </div>
+        <div class="g3">
+          <label class="lab">Date<input type="date" data-bind="date"></label>
+          <label class="lab">Start<select data-bind="start"></select></label>
+          <label class="lab">Hours<select data-bind="hours"></select></label>
+        </div>
+        <label class="lab">Seat
+          <select id="seatsel"></select>
+        </label>
+        <div>
+          <label class="lab" for="promo">Promo code (optional)</label>
+          <div class="promo" style="margin-top:6px"><input id="promo" placeholder="Try LEVELUP" autocomplete="off"><button class="btn" type="button" id="promo-btn">Apply</button></div>
+          <div class="msg" id="promo-msg" aria-live="polite"></div>
+        </div>
+        <div class="err" id="e-s1" aria-live="polite"></div>
+      </div>
+
+      <div class="step" data-step="2" hidden>
+        <label class="lab">Name<input id="f-name" autocomplete="name" placeholder="Your gamer name" aria-describedby="e-f-name"><span class="err" id="e-f-name"></span></label>
+        <label class="lab">Phone<input id="f-phone" inputmode="numeric" autocomplete="tel" placeholder="10 digit mobile number" aria-describedby="e-f-phone"><span class="err" id="e-f-phone"></span></label>
+        <label class="lab">Email (optional, for the receipt)<input id="f-email" type="email" autocomplete="email" placeholder="you@example.com" aria-describedby="e-f-email"><span class="err" id="e-f-email"></span></label>
+      </div>
+
+      <div class="step" data-step="3" hidden>
+        <div class="note"><b>Demo payment.</b> No money is charged and nothing leaves this page. Card test: 4242 4242 4242 4242, any future date, any CVV. 4000 0000 0000 0002 simulates a decline.</div>
+        <div class="seg m3" role="group" aria-label="Payment method">
+          <button type="button" data-pay="upi" aria-pressed="true">UPI</button>
+          <button type="button" data-pay="card" aria-pressed="false">Card</button>
+          <button type="button" data-pay="counter" aria-pressed="false">At counter</button>
+        </div>
+        <div class="banner" id="paybanner" role="alert" hidden></div>
+
+        <div data-method="upi" class="step">
+          <div class="g2" style="align-items:center">
+            <label class="lab">UPI ID<input id="p-upi" placeholder="name@bank" autocomplete="off" aria-describedby="e-p-upi"><span class="err" id="e-p-upi"></span></label>
+            <div class="qr"><canvas id="upi-qr" width="200" height="200" aria-label="Demo QR code"></canvas><span class="mono" style="font-size:.75rem;color:var(--muted)">or scan (demo)</span></div>
+          </div>
+        </div>
+        <div data-method="card" class="step" hidden>
+          <label class="lab">Card number<input id="p-num" inputmode="numeric" autocomplete="off" placeholder="1234 5678 9012 3456" aria-describedby="e-p-num"><span class="err" id="e-p-num"></span></label>
+          <div class="g3">
+            <label class="lab">Expiry<input id="p-exp" inputmode="numeric" autocomplete="off" placeholder="MM/YY" aria-describedby="e-p-exp"><span class="err" id="e-p-exp"></span></label>
+            <label class="lab">CVV<input id="p-cvv" inputmode="numeric" autocomplete="off" placeholder="123" aria-describedby="e-p-cvv"><span class="err" id="e-p-cvv"></span></label>
+            <label class="lab">Name on card<input id="p-cname" autocomplete="off" placeholder="As on card" aria-describedby="e-p-cname"><span class="err" id="e-p-cname"></span></label>
+          </div>
+        </div>
+        <div data-method="counter" class="step" hidden>
+          <p>We will hold your seat for 15 minutes after your start time. Pay at the front desk when you arrive.</p>
+        </div>
+      </div>
+
+      <div class="step done" data-step="4" hidden>
+        <svg class="tick" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="30"/><path d="M23 37l9 9 17-19"/></svg>
+        <h3 id="done-h">Seat locked in</h3>
+        <div class="qr ticket">
+          <canvas id="tk-qr" width="200" height="200" aria-label="Booking QR code"></canvas>
+          <dl id="tk-dl"></dl>
+        </div>
+        <div class="cta" style="justify-content:center">
+          <button class="btn" type="button" id="ics">Add to calendar</button>
+          <button class="btn" type="button" id="another">Book another</button>
+        </div>
+      </div>
+
+      <div class="dlg-foot">
+        <button class="btn" type="button" id="back">Back</button>
+        <button class="btn primary" type="button" id="next">Continue</button>
+      </div>
+    </div>
+
+    <aside class="summary" aria-label="Order summary">
+      <h3>Order summary</h3>
+      <dl id="sum"></dl>
+      <p style="font-size:.8rem">Free cancellation from My bookings, any time.</p>
+    </aside>
+  </div>
+
+  <div class="proc" id="proc" hidden>
+    <div class="spin" aria-hidden="true"></div>
+    <b id="proc-t">Contacting your bank...</b>
+    <span style="color:var(--muted);font-size:.85rem">Please do not close this window</span>
+  </div>
+</dialog>
+
+<script type="module">
+let THREE=null,OrbitControls=null;
+try{
+  THREE=await import('three');
+  ({OrbitControls}=await import('three/addons/controls/OrbitControls.js'));
+}catch(e){THREE=null}
+
+/* ---------- helpers ---------- */
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const pad=n=>String(n).padStart(2,'0');
+const ISO=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const inr=n=>'₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:Number.isInteger(n)?0:2,maximumFractionDigits:2});
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function hash(s){let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+const hourLabel=h=>`${pad(h%24)}:00`;
+
+/* ---------- data ---------- */
+const UNITS=[];
+for(let i=1;i<=20;i++)UNITS.push({id:'PC-'+pad(i),type:'pc',rate:120,zone:'Rig Hall'});
+for(let i=1;i<=10;i++)UNITS.push({id:'PS-'+pad(i),type:'console',rate:200,zone:'Console Pit'});
+const RATE={pc:120,console:200};
+const OPEN=10, CLOSE=26; // hours; 24 and 25 mean 00:00 and 01:00 after midnight
+
+const now=new Date();
+const todayISO=ISO(now);
+const state={
+  date:todayISO,
+  start:Math.min(25,Math.max(OPEN,now.getHours()>=OPEN?now.getHours()+1:OPEN)),
+  hours:2, type:'pc', sel:null, promo:false, step:1, pay:'upi', busyProc:false, lastBooking:null
+};
+
+function getBookings(){try{return JSON.parse(localStorage.getItem('rl_bookings')||'[]').filter(b=>UNITS.some(u=>u.id===b.unit))}catch{return[]}}
+function setBookings(b){try{localStorage.setItem('rl_bookings',JSON.stringify(b))}catch{}}
+const peak=h=>h>=18&&h<=23;
+const seeded=(u,date,h)=>hash(date+u.id+h)%100<(peak(h)?62:28);
+function isBusy(u,date,start,hours,bk=getBookings()){
+  for(let h=start;h<start+hours;h++)if(seeded(u,date,h))return true;
+  return bk.some(b=>b.unit===u.id&&b.date===date&&start<b.start+b.hours&&b.start<start+hours);
+}
+const isPast=(date,h)=>date===todayISO&&now.getHours()>=OPEN&&h<=now.getHours();
+const unitById=id=>UNITS.find(u=>u.id===id);
+
+/* ---------- toast ---------- */
+const toastEl=$('#toast'),toastT=$('#toast-t'),toastA=$('#toast-a');let toastTimer;
+function toast(msg,action){
+  toastT.textContent=msg;
+  if(action){toastA.hidden=false;toastA.textContent=action.label;toastA.onclick=()=>{action.fn();toastEl.classList.remove('show')}}
+  else{toastA.hidden=true;toastA.onclick=null}
+  toastEl.classList.add('show');clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>toastEl.classList.remove('show'),action?6000:3500);
+}
+
+/* ---------- three.js helpers ---------- */
+function makeRenderer(canvas){
+  if(!THREE)return null;
+  try{
+    const r=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+    r.setPixelRatio(Math.min(devicePixelRatio,2));
+    return r;
+  }catch(e){return null}
+}
+function fit(r,cam,el){
+  const w=el.clientWidth,h=el.clientHeight;if(!w||!h)return;
+  r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();
+}
+function onVisible(el,fn){
+  const io=new IntersectionObserver(es=>fn(es[0].isIntersecting),{threshold:0});io.observe(el);
+}
+const box=(w,h,d,mat,x=0,y=0,z=0)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);return m};
+const std=(color,extra={})=>new THREE.MeshStandardMaterial({color,roughness:.6,metalness:.2,...extra});
+
+/* ---------- compatibility renderer (used when WebGL is unavailable) ---------- */
+const INK='#0D0D0D',RED='#E61919';
+function shadeHex(hex,f){
+  const n=parseInt(hex.slice(1),16),c=v=>Math.max(0,Math.min(255,Math.round(v*f)));
+  return `rgb(${c(n>>16&255)},${c(n>>8&255)},${c(n&255)})`;
+}
+function makeProj(){
+  const P={yaw:-.5,pitch:.62,s:30,cx:0,cy:0,tx:0,tz:0};
+  P.pt=(x,y,z)=>{
+    x-=P.tx;z-=P.tz;
+    const c=Math.cos(P.yaw),sn=Math.sin(P.yaw),sp=Math.sin(P.pitch),cp=Math.cos(P.pitch);
+    const xr=x*c-z*sn,zr=x*sn+z*c;
+    return [P.cx+xr*P.s,P.cy+(zr*sp-y*cp)*P.s,zr*cp+y*sp];
+  };
+  return P;
+}
+const BOX_FACES=[[4,5,6,7,0,1,0],[0,1,5,4,0,0,-1],[3,2,6,7,0,0,1],[0,3,7,4,-1,0,0],[1,2,6,5,1,0,0]];
+function drawBox(ctx,P,cx,cy,cz,w,h,d,col){
+  const hx=w/2,hy=h/2,hz=d/2;
+  const V=[[-1,-1,-1],[1,-1,-1],[1,-1,1],[-1,-1,1],[-1,1,-1],[1,1,-1],[1,1,1],[-1,1,1]]
+    .map(([a,b,c])=>P.pt(cx+a*hx,cy+b*hy,cz+c*hz));
+  const c=Math.cos(P.yaw),sn=Math.sin(P.yaw);
+  const faces=BOX_FACES.map(f=>{
+    const pts=f.slice(0,4).map(i=>V[i]),nx=f[4],ny=f[5],nz=f[6];
+    const nxr=nx*c-nz*sn,nzr=nx*sn+nz*c;
+    const dep=(pts[0][2]+pts[1][2]+pts[2][2]+pts[3][2])/4;
+    return {pts,dep,lit:ny>0?1:Math.max(.42,.66-.18*nxr+.22*nzr)};
+  }).sort((a,b)=>a.dep-b.dep);
+  ctx.lineJoin='round';
+  for(const f of faces){
+    ctx.beginPath();
+    f.pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+    ctx.closePath();
+    ctx.fillStyle=shadeHex(col,f.lit);ctx.fill();
+    ctx.strokeStyle='rgba(13,13,13,.55)';ctx.lineWidth=1;ctx.stroke();
+  }
+}
+function fillPoly(ctx,pts,fill,stroke,lw=1){
+  ctx.beginPath();
+  pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+  ctx.closePath();
+  if(fill){ctx.fillStyle=fill;ctx.fill()}
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.stroke()}
+}
+
+// part: [x, y, z, w, h, d, colourKey] relative to a station origin
+const PC_PARTS=[
+  [0,.75,0,1.7,.08,.9,'desk'],[-.75,.375,0,.08,.75,.8,'desk'],[.75,.375,0,.08,.75,.8,'desk'],
+  [0,.92,-.25,.06,.3,.06,'body'],[0,1.2,-.25,.9,.55,.05,'body'],[0,1.2,-.215,.82,.47,.02,'screen'],
+  [0,.8,.15,.5,.02,.18,'body'],
+  [0,.25,.95,.06,.5,.06,'chair'],[0,.5,.95,.5,.08,.5,'chair'],[0,.85,1.2,.5,.6,.07,'chair']
+];
+const CON_PARTS=[
+  [0,.225,-1.1,2.4,.45,.4,'desk'],[0,1.2,-1.15,2.2,1.2,.07,'body'],[0,1.2,-1.1,2.05,1.05,.02,'screen'],
+  [0,.5,-1.1,.5,.1,.35,'body'],[0,.15,.2,1,.3,.55,'desk'],
+  [0,.225,1.5,2.4,.45,.9,'sofa'],[0,.7,1.9,2.4,.7,.22,'sofa']
+];
+const PART_COL={desk:'#4a4a46',body:'#151515',chair:'#2c2c2a',sofa:'#3a3a37'};
+
+function initFloor2D(wrap,canvas,tip){
+  const ctx=canvas.getContext('2d'),P=makeProj();
+  const VIEWS={overview:{yaw:-.5,zoom:1.05,tx:0,tz:-.5},rig:{yaw:0,zoom:1.6,tx:0,tz:5},console:{yaw:0,zoom:1.9,tx:0,tz:-8}};
+  const cur={...VIEWS.overview};
+  const stations=UNITS.map((u,i)=>{
+    if(u.type==='pc'){const r=Math.floor(i/5),c=i%5;return {u,x:(c-2)*2.5,z:r*2.4+(r>=2?1.6:0)}}
+    const j=i-20;return {u,x:((j%5)-2)*3.6,z:-10+Math.floor(j/5)*4.2};
+  });
+  const busy=new Map(),lift={};
+  let hoverId=null,dirty=true,on=false,tw=null,W=1,H=1,drag=null,moved=false;
+  const hint=$('.hint',wrap);
+  if(hint)hint.textContent='Drag to rotate / scroll to zoom / click a seat (compatibility view)';
+
+  function size(){
+    const dpr=Math.min(devicePixelRatio||1,2);
+    W=wrap.clientWidth;H=wrap.clientHeight;
+    canvas.width=Math.max(1,W*dpr);canvas.height=Math.max(1,H*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);dirty=true;
+  }
+  new ResizeObserver(size).observe(wrap);size();
+  onVisible(wrap,v=>{on=v;dirty=true});
+
+  const status=id=>state.sel===id?'sel':busy.get(id)?'busy':'free';
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    P.yaw=cur.yaw;P.pitch=.62;P.s=Math.min(W/23,H/17.5)*cur.zoom;P.cx=W/2;P.cy=H*.54;P.tx=cur.tx;P.tz=cur.tz;
+    fillPoly(ctx,[P.pt(-22,0,-12),P.pt(22,0,-12),P.pt(22,0,18),P.pt(-22,0,18)],'#D6D3CB',null);
+    ctx.strokeStyle='rgba(13,13,13,.14)';ctx.lineWidth=1;
+    for(let x=-22;x<=22;x+=2){const a=P.pt(x,0,-12),b=P.pt(x,0,18);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()}
+    for(let z=-12;z<=18;z+=2){const a=P.pt(-22,0,z),b=P.pt(22,0,z);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()}
+
+    stations.forEach(s=>{
+      const id=s.u.id,st=status(id),pc=s.u.type==='pc',w=pc?2.05:2.56,d=pc?2.15:3.04,zc=s.z+(pc?.45:.4);
+      const pts=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([a,b])=>P.pt(s.x+a*w/2,.02,zc+b*d/2));
+      const fill=st==='sel'?'#FFFFFF':st==='busy'?`rgba(230,25,25,${hoverId===id?.85:.6})`:`rgba(13,13,13,${hoverId===id?.38:.2})`;
+      fillPoly(ctx,pts,fill,INK,st==='sel'?3:1);
+    });
+
+    const order=stations.map(s=>({s,dep:P.pt(s.x,0,s.z)[2]+((lift[s.u.id]||0)>.05?1e4:0)})).sort((a,b)=>a.dep-b.dep);
+    order.forEach(({s})=>{
+      const st=status(s.u.id),parts=s.u.type==='pc'?PC_PARTS:CON_PARTS,L=lift[s.u.id]||0,k=(s.u.type==='pc'?1:.8)*(1+L*.1),dy=L*.55;
+      const screenCol=st==='sel'?'#FFFFFF':st==='busy'?RED:'#2a2a28';
+      parts.map(p=>({p,dep:P.pt(s.x+p[0]*k,p[1]*k+dy,s.z+p[2]*k)[2]})).sort((a,b)=>a.dep-b.dep).forEach(({p})=>{
+        drawBox(ctx,P,s.x+p[0]*k,p[1]*k+dy,s.z+p[2]*k,p[3]*k,p[4]*k,p[5]*k,p[6]==='screen'?screenCol:PART_COL[p[6]]);
+      });
+    });
+
+    if(P.s>=20){
+      ctx.font='600 11px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+      order.forEach(({s})=>{
+        const pc=s.u.type==='pc',t=pc?s.u.id.replace('PC-',''):s.u.id,[x,y]=P.pt(s.x,1.95+(lift[s.u.id]||0)*.55,s.z+(pc?.2:.16));
+        const w=ctx.measureText(t).width+10;
+        ctx.fillStyle=INK;ctx.fillRect(x-w/2,y-9,w,18);
+        ctx.fillStyle='#F4F4F0';ctx.fillText(t,x,y+.5);
+      });
+    }
+  }
+
+  function pick(e){
+    const b=canvas.getBoundingClientRect(),px=e.clientX-b.left,py=e.clientY-b.top;
+    let best=null,bd=1e9;
+    stations.forEach(s=>{
+      const pc=s.u.type==='pc',[x,y]=P.pt(s.x,pc?.8:.7,s.z+(pc?.3:.3));
+      const dist=Math.hypot(px-x,py-y),lim=(pc?1.15:1.35)*P.s;
+      if(dist<lim&&dist<bd){bd=dist;best=s.u}
+    });
+    return best;
+  }
+  canvas.addEventListener('pointerdown',e=>{
+    drag={x:e.clientX,y:e.clientY,yaw:cur.yaw};moved=false;canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove',e=>{
+    if(drag){
+      const dx=e.clientX-drag.x;
+      if(Math.abs(dx)>4||Math.abs(e.clientY-drag.y)>4)moved=true;
+      if(moved){cur.yaw=drag.yaw+dx*.008;dirty=true;tip.style.opacity=0;return}
+    }
+    const u=pick(e),id=u?u.id:null;
+    if(id!==hoverId){hoverId=id;dirty=true}
+    canvas.style.cursor=u?(busy.get(id)?'not-allowed':'pointer'):'grab';
+    if(u){
+      const b=wrap.getBoundingClientRect();
+      tip.innerHTML=seatTip(u,busy.get(id));placeTip(tip,wrap,e);
+    }else tip.style.opacity=0;
+  });
+  canvas.addEventListener('pointerup',e=>{
+    const was=drag;drag=null;
+    if(was&&!moved){const u=pick(e);if(u)chooseSeat(u.id)}
+  });
+  canvas.addEventListener('pointerleave',()=>{tip.style.opacity=0;if(hoverId){hoverId=null;dirty=true}});
+  canvas.addEventListener('wheel',e=>{
+    e.preventDefault();cur.zoom=Math.max(.7,Math.min(3,cur.zoom*Math.exp(-e.deltaY*.0012)));dirty=true;
+  },{passive:false});
+
+  function view(name){
+    const v=VIEWS[name];if(!v)return;
+    if(reduce){Object.assign(cur,v);dirty=true;return}
+    tw={t0:performance.now(),dur:700,from:{...cur},to:v};
+  }
+  $$('[data-view]',wrap).forEach(b=>b.addEventListener('click',()=>view(b.dataset.view)));
+  (function loop(){
+    requestAnimationFrame(loop);
+    if(tw){
+      const k=Math.min(1,(performance.now()-tw.t0)/tw.dur),e=1-Math.pow(1-k,4);
+      for(const key of ['yaw','zoom','tx','tz'])cur[key]=tw.from[key]+(tw.to[key]-tw.from[key])*e;
+      dirty=true;if(k>=1)tw=null;
+    }
+    if(on)for(const st of stations){
+      const id=st.u.id,t=hoverId===id?1:0,c=lift[id]||0;
+      if(c!==t){let n=c+(t-c)*(reduce?1:.22);if(Math.abs(t-n)<.01)n=t;lift[id]=n;dirty=true}
+    }
+    if(!on||!dirty)return;
+    dirty=false;draw();
+  })();
+  return {update(m){m.forEach((v,k)=>busy.set(k,v));dirty=true},view};
+}
+
+function paintScreen(sx,t){
+  sx.fillStyle='#0D0D0D';sx.fillRect(0,0,640,300);
+  sx.strokeStyle='rgba(230,25,25,.4)';sx.lineWidth=1;
+  for(let i=0;i<14;i++){const y=140+((i*22+t*40)%160);sx.beginPath();sx.moveTo(0,y);sx.lineTo(640,y);sx.stroke()}
+  for(let i=-10;i<=10;i++){sx.beginPath();sx.moveTo(320+i*20,140);sx.lineTo(320+i*90,300);sx.stroke()}
+  sx.fillStyle=RED;sx.font='800 54px Archivo, sans-serif';sx.fillText('RESPAWN',32,84);
+  sx.fillStyle='#F4F4F0';sx.font='600 20px JetBrains Mono, monospace';sx.fillText('READY PLAYER ONE',34,118);
+  sx.fillStyle=RED;sx.font='600 18px JetBrains Mono, monospace';
+  sx.fillText('FPS '+(238+Math.floor(Math.sin(t*3)*2)),480,40);sx.fillText('PING 4ms',480,64);
+}
+function initHero2D(wrap,canvas){
+  const ctx=canvas.getContext('2d'),P=makeProj();
+  const sc=document.createElement('canvas');sc.width=640;sc.height=300;const sx=sc.getContext('2d');
+  let W=1,H=1,on=true,mx=0;
+  function size(){
+    const dpr=Math.min(devicePixelRatio||1,2);
+    W=wrap.clientWidth;H=wrap.clientHeight;
+    canvas.width=Math.max(1,W*dpr);canvas.height=Math.max(1,H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  new ResizeObserver(size).observe(wrap);size();
+  onVisible(wrap,v=>on=v);
+  wrap.addEventListener('pointermove',e=>{const b=wrap.getBoundingClientRect();mx=((e.clientX-b.left)/b.width-.5)*2});
+  const PARTS=[
+    [0,1,0,3.6,.1,1.7,'#3a3a37'],[-1.6,.5,0,.1,1,1.5,'#3a3a37'],[1.6,.5,0,.1,1,1.5,'#3a3a37'],
+    [-.2,1.35,-.45,.12,.55,.12,'#151515'],[-.2,2.05,-.4,2.5,1.1,.06,'#151515'],
+    [-.3,1.07,.35,1.2,.04,.4,'#151515'],[-.3,1.1,.35,1.14,.012,.34,RED],[.75,1.08,.35,.14,.05,.24,'#151515'],
+    [1.2,1.7,-.1,.7,1.3,1.1,'#151515']
+  ];
+  const t0=performance.now();
+  (function loop(){
+    requestAnimationFrame(loop);if(!on)return;
+    const t=(performance.now()-t0)/1000,amp=reduce?0:1;
+    ctx.clearRect(0,0,W,H);
+    P.yaw=-.4+Math.sin(t*.35)*.3*amp+mx*.25*amp;P.pitch=.5;P.s=Math.min(W/9.4,H/6.4);P.cx=W/2;P.cy=H*.66;
+    const ring=[],disc=[];
+    for(let i=0;i<64;i++){const a=i/64*Math.PI*2;disc.push(P.pt(Math.cos(a)*4,0,Math.sin(a)*4));ring.push(P.pt(Math.cos(a)*2.7,.03,Math.sin(a)*2.7))}
+    fillPoly(ctx,disc,'#DCD9D1',INK,2);fillPoly(ctx,ring,null,INK,2);
+    PARTS.map(p=>({p,dep:P.pt(p[0],p[1],p[2])[2]})).sort((a,b)=>a.dep-b.dep).forEach(({p})=>drawBox(ctx,P,p[0],p[1],p[2],p[3],p[4],p[5],p[6]));
+    // live monitor texture, drawn exactly via an affine map (orthographic projection)
+    paintScreen(sx,t);
+    const o=P.pt(0,0,0),dx=P.pt(1,0,0),dy=P.pt(0,1,0);
+    const pX=[dx[0]-o[0],dx[1]-o[1]],pY=[dy[0]-o[0],dy[1]-o[1]];
+    const cen=P.pt(-.2,2.05,-.368);
+    ctx.save();
+    ctx.transform(pX[0]*2.4/640,pX[1]*2.4/640,-pY[0]/300,-pY[1]/300,cen[0]-1.2*pX[0]+.5*pY[0],cen[1]-1.2*pX[1]+.5*pY[1]);
+    ctx.drawImage(sc,0,0);ctx.restore();
+    // tower fan rings
+    ctx.save();
+    for(let i=0;i<3;i++){
+      const c=P.pt(1.2,1.3+i*.4,.47);
+      ctx.save();ctx.transform(pX[0],pX[1],pY[0],pY[1],c[0],c[1]);
+      ctx.strokeStyle=RED;ctx.lineWidth=.07;ctx.beginPath();ctx.arc(0,0,.17,0,Math.PI*2);ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+    ctx.setTransform(Math.min(devicePixelRatio||1,2),0,0,Math.min(devicePixelRatio||1,2),0,0);
+  })();
+}
+
+
+/* ---------- hero scene ---------- */
+function initHero(){
+  const wrap=$('#hero3d'),canvas=$('canvas',wrap);
+  const r=makeRenderer(canvas);if(!r){initHero2D(wrap,canvas);return}
+  const scene=new THREE.Scene();
+  const cam=new THREE.PerspectiveCamera(38,1,0.1,60);cam.position.set(0,2.9,7.4);cam.lookAt(0,1.45,0);
+  scene.add(new THREE.AmbientLight(0xffffff,1.4));
+  const dl=new THREE.DirectionalLight(0xffffff,1.8);dl.position.set(3,6,5);scene.add(dl);
+  const pl=new THREE.PointLight(0xE61919,60,0,2);pl.position.set(-3,2.5,3);scene.add(pl);
+  const rig=new THREE.Group();scene.add(rig);
+
+  const deskM=std(0x3a3a37),bodyM=std(0x151515,{metalness:.5});
+  rig.add(box(3.6,0.1,1.7,deskM,0,1,0));
+  rig.add(box(0.1,1,1.5,deskM,-1.6,0.5,0));
+  rig.add(box(0.1,1,1.5,deskM,1.6,0.5,0));
+  // monitor with live canvas texture
+  const sc=document.createElement('canvas');sc.width=640;sc.height=300;const sx=sc.getContext('2d');
+  const tex=new THREE.CanvasTexture(sc);tex.colorSpace=THREE.SRGBColorSpace;
+  rig.add(box(2.5,1.1,0.06,bodyM,-0.2,2.05,-0.4));
+  const scr=new THREE.Mesh(new THREE.PlaneGeometry(2.4,1.0),new THREE.MeshBasicMaterial({map:tex,toneMapped:false}));
+  scr.position.set(-0.2,2.05,-0.368);rig.add(scr);
+  rig.add(box(0.12,0.55,0.12,bodyM,-0.2,1.35,-0.45));
+  rig.add(box(0.8,0.04,0.4,bodyM,-0.2,1.07,-0.42));
+  // keyboard with cycling light
+  const kbM=std(0x111111,{emissive:0xE61919,emissiveIntensity:.9});
+  rig.add(box(1.2,0.04,0.4,bodyM,-0.3,1.07,0.35));
+  const strip=box(1.14,0.012,0.34,kbM,-0.3,1.1,0.35);rig.add(strip);
+  rig.add(box(0.14,0.05,0.24,bodyM,0.75,1.08,0.35));
+  // tower
+  rig.add(box(0.7,1.3,1.1,bodyM,1.2,1.7,-0.1));
+  const glow=std(0x111111,{emissive:0xE61919,emissiveIntensity:1});
+  const fans=[];
+  for(let i=0;i<3;i++){
+    const t=new THREE.Mesh(new THREE.TorusGeometry(0.17,0.035,12,32),glow);
+    t.position.set(1.2,1.3+i*0.4,0.47);rig.add(t);fans.push(t);
+  }
+  // neon ring under desk
+  const ringM=new THREE.MeshBasicMaterial({color:0x0D0D0D,transparent:true,opacity:.9});
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(2.7,0.02,8,80),ringM);ring.rotation.x=Math.PI/2;ring.position.y=0.03;scene.add(ring);
+  const floor=new THREE.Mesh(new THREE.CircleGeometry(4,64),new THREE.MeshStandardMaterial({color:0xdcd9d1,roughness:.9}));
+  floor.rotation.x=-Math.PI/2;scene.add(floor);
+  // particles
+  const N=140,pos=new Float32Array(N*3);
+  for(let i=0;i<N;i++){pos[i*3]=(Math.random()-.5)*9;pos[i*3+1]=Math.random()*5;pos[i*3+2]=(Math.random()-.5)*6}
+  const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const pts=new THREE.Points(pg,new THREE.PointsMaterial({color:0x0D0D0D,size:0.04,transparent:true,opacity:.45}));scene.add(pts);
+
+  let mx=0,my=0;
+  wrap.addEventListener('pointermove',e=>{const b=wrap.getBoundingClientRect();mx=((e.clientX-b.left)/b.width-.5)*2;my=((e.clientY-b.top)/b.height-.5)*2});
+  function drawScreen(t){
+    const g=sx.createLinearGradient(0,0,640,300);g.addColorStop(0,'#0D0D0D');g.addColorStop(1,'#1c1c1c');
+    sx.fillStyle=g;sx.fillRect(0,0,640,300);
+    sx.strokeStyle='rgba(230,25,25,.4)';sx.lineWidth=1;
+    for(let i=0;i<14;i++){const y=140+((i*22+t*40)%160);sx.beginPath();sx.moveTo(0,y);sx.lineTo(640,y);sx.stroke()}
+    for(let i=-10;i<=10;i++){sx.beginPath();sx.moveTo(320+i*20,140);sx.lineTo(320+i*90,300);sx.stroke()}
+    sx.fillStyle='#E61919';sx.font='800 54px Archivo, sans-serif';sx.fillText('RESPAWN',32,84);
+    sx.fillStyle='#F4F4F0';sx.font='600 20px JetBrains Mono, monospace';sx.fillText('READY PLAYER ONE',34,118);
+    sx.fillStyle='#E61919';sx.font='600 18px JetBrains Mono, monospace';
+    sx.fillText('FPS '+(238+Math.floor(Math.sin(t*3)*2)),480,40);sx.fillText('PING 4ms',480,64);
+    tex.needsUpdate=true;
+  }
+  let on=true,t0=performance.now(),lastDraw=0;
+  onVisible(wrap,v=>on=v);
+  new ResizeObserver(()=>fit(r,cam,wrap)).observe(wrap);fit(r,cam,wrap);
+  (function loop(){
+    requestAnimationFrame(loop);if(!on)return;
+    const t=(performance.now()-t0)/1000;
+    if(t-lastDraw>0.04){drawScreen(t);lastDraw=t}
+    const amp=reduce?0:1;
+    rig.rotation.y+=((Math.sin(t*.35)*.3*amp+mx*.35*amp)-rig.rotation.y)*.06;
+    rig.rotation.x+=((my*.06*amp)-rig.rotation.x)*.06;
+    rig.position.y=Math.sin(t*1.2)*.04*amp;
+    const c=new THREE.Color(0xE61919).multiplyScalar(.7+Math.sin(t*2)*.3*amp);
+    kbM.emissive.copy(c);
+    fans.forEach((f,i)=>{f.rotation.z=t*(1+i*.3)*amp;glow.emissive.copy(c)});
+    pts.rotation.y=t*.03*amp;
+    r.render(scene,cam);
+  })();
+}
+
+/* ---------- floor scene ---------- */
+const COL={free:0x2a2a28,busy:0xE61919,sel:0xffffff};
+function label(text){
+  const c=document.createElement('canvas');c.width=128;c.height=64;const x=c.getContext('2d');
+  x.fillStyle='rgba(10,14,18,.8)';x.beginPath();x.roundRect(4,8,120,48,10);x.fill();
+  x.fillStyle='#fff';x.font='600 28px JetBrains Mono, monospace';x.textAlign='center';x.textBaseline='middle';x.fillText(text,64,33);
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true}));s.scale.set(1,.5,1);return s;
+}
+let floor=null;
+function initFloor(){
+  const wrap=$('#floor3d'),canvas=$('canvas',wrap),tip=$('#tip');
+  const r=makeRenderer(canvas);if(!r)return initFloor2D(wrap,canvas,tip);
+  const scene=new THREE.Scene();scene.background=new THREE.Color(0xE4E1D9);scene.fog=new THREE.Fog(0xE4E1D9,30,70);
+  const cam=new THREE.PerspectiveCamera(45,1,0.1,120);
+  const VIEWS={
+    overview:{p:[0,17,21],t:[0,0,-.5]},
+    rig:{p:[0,9,17],t:[0,0,5]},
+    console:{p:[0,7,-2],t:[0,0.3,-8]}
+  };
+  cam.position.set(...VIEWS.overview.p);
+  const ctl=new OrbitControls(cam,canvas);
+  ctl.target.set(...VIEWS.overview.t);ctl.enableDamping=true;ctl.enablePan=false;
+  ctl.maxPolarAngle=Math.PI/2.15;ctl.minDistance=5;ctl.maxDistance=34;ctl.update();
+
+  scene.add(new THREE.AmbientLight(0xffffff,1.5));
+  const dl=new THREE.DirectionalLight(0xffffff,1.6);dl.position.set(6,14,10);scene.add(dl);
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(46,34),new THREE.MeshStandardMaterial({color:0xD6D3CB,roughness:.95}));
+  fl.rotation.x=-Math.PI/2;fl.position.set(0,0,2);scene.add(fl);
+  const grid=new THREE.GridHelper(46,46,0x8d8a80,0xb5b2a7);grid.position.set(0,0.01,2);scene.add(grid);
+  // back wall sign
+  const sc=document.createElement('canvas');sc.width=1024;sc.height=200;const sx=sc.getContext('2d');
+  sx.fillStyle='#0D0D0D';sx.fillRect(0,0,1024,200);sx.fillStyle='#E61919';sx.font='800 120px Archivo, sans-serif';sx.textAlign='center';sx.textBaseline='middle';sx.fillText('RESPAWN LOUNGE',512,106);
+  const st=new THREE.CanvasTexture(sc);st.colorSpace=THREE.SRGBColorSpace;
+  const sign=new THREE.Mesh(new THREE.PlaneGeometry(12,2.35),new THREE.MeshBasicMaterial({map:st,toneMapped:false}));
+  sign.position.set(0,4.2,-11.5);scene.add(sign);
+  const wall=new THREE.Mesh(new THREE.PlaneGeometry(46,9),new THREE.MeshStandardMaterial({color:0xC9C6BD,roughness:1}));
+  wall.position.set(0,4.5,-11.6);scene.add(wall);
+
+  const deskM=std(0x4a4a46),bodyM=std(0x151515,{metalness:.5}),chairM=std(0x2c2c2a),sofaM=std(0x3a3a37);
+  const entries=new Map(),groups=[];
+  function pad(w,d,z){
+    const m=new THREE.MeshBasicMaterial({color:COL.free,transparent:true,opacity:.28,depthWrite:false});
+    const p=new THREE.Mesh(new THREE.PlaneGeometry(w,d),m);p.rotation.x=-Math.PI/2;p.position.set(0,0.02,z);return p;
+  }
+  function addPC(u,x,z){
+    const g=new THREE.Group();g.position.set(x,0,z);g.userData.unit=u;
+    const sm=new THREE.MeshStandardMaterial({color:0x111111,emissive:COL.free,emissiveIntensity:.9});
+    g.add(box(1.7,0.08,0.9,deskM,0,0.75,0));
+    g.add(box(0.08,0.75,0.8,deskM,-0.75,0.375,0));g.add(box(0.08,0.75,0.8,deskM,0.75,0.375,0));
+    g.add(box(0.9,0.55,0.05,bodyM,0,1.2,-0.25));
+    const scr=new THREE.Mesh(new THREE.PlaneGeometry(0.82,0.47),sm);scr.position.set(0,1.2,-0.223);g.add(scr);
+    g.add(box(0.06,0.3,0.06,bodyM,0,0.92,-0.25));
+    g.add(box(0.5,0.02,0.18,bodyM,0,0.8,0.15));
+    g.add(box(0.5,0.08,0.5,chairM,0,0.5,0.95));g.add(box(0.5,0.6,0.07,chairM,0,0.85,1.2));g.add(box(0.06,0.5,0.06,chairM,0,0.25,0.95));
+    const p=pad(2.05,2.15,0.45);g.add(p);
+    const l=label(u.id.replace('PC-',''));l.position.set(0,1.95,0.2);g.add(l);
+    scene.add(g);entries.set(u.id,{g,pad:p,scr:sm,base:1,k:0});groups.push(g);
+  }
+  function addConsole(u,x,z){
+    const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(.8);g.userData.unit=u;
+    const sm=new THREE.MeshStandardMaterial({color:0x111111,emissive:COL.free,emissiveIntensity:.9});
+    g.add(box(2.4,0.45,0.4,deskM,0,0.225,-1.1));
+    g.add(box(2.2,1.2,0.07,bodyM,0,1.2,-1.15));
+    const scr=new THREE.Mesh(new THREE.PlaneGeometry(2.05,1.05),sm);scr.position.set(0,1.2,-1.11);g.add(scr);
+    g.add(box(0.5,0.1,0.35,bodyM,0,0.5,-1.1));
+    g.add(box(1.0,0.3,0.55,deskM,0,0.15,0.2));
+    g.add(box(2.4,0.45,0.9,sofaM,0,0.225,1.5));g.add(box(2.4,0.7,0.22,sofaM,0,0.7,1.9));
+    const p=pad(3.2,3.8,0.5);g.add(p);
+    const l=label(u.id);l.position.set(0,2.3,0.2);l.scale.set(1.3,.65,1);g.add(l);
+    scene.add(g);entries.set(u.id,{g,pad:p,scr:sm,base:.8,k:0});groups.push(g);
+  }
+  let k=0;
+  for(let row=0;row<4;row++)for(let col=0;col<5;col++){
+    addPC(UNITS[k++],(col-2)*2.5,row*2.4+(row>=2?1.6:0));
+  }
+  for(let i=0;i<10;i++)addConsole(UNITS[20+i],((i%5)-2)*3.6,-10+Math.floor(i/5)*4.2);
+
+  // picking
+  const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
+  let hoverId=null,downX=0,downY=0;
+  const paint=()=>{
+    for(const [id,e] of entries){
+      const u=unitById(id),sel=state.sel===id,busy=floor_busy.get(id);
+      const c=sel?COL.sel:busy?COL.busy:COL.free;
+      e.pad.material.color.setHex(c);
+      e.pad.material.opacity=sel?1:(hoverId===id?.45:(busy?.6:.2));
+      e.scr.emissive.setHex(c);e.scr.emissiveIntensity=busy?1:(sel?1.2:.7);
+    }
+  };
+  const floor_busy=new Map();
+  function pick(e){
+    const b=canvas.getBoundingClientRect();
+    ndc.set(((e.clientX-b.left)/b.width)*2-1,-((e.clientY-b.top)/b.height)*2+1);
+    ray.setFromCamera(ndc,cam);
+    const hit=ray.intersectObjects(groups,true)[0];if(!hit)return null;
+    let o=hit.object;while(o&&!o.userData.unit)o=o.parent;return o?o.userData.unit:null;
+  }
+  let moveQueued=false;
+  canvas.addEventListener('pointermove',e=>{
+    if(moveQueued)return;moveQueued=true;
+    requestAnimationFrame(()=>{
+      moveQueued=false;const u=pick(e);const id=u?u.id:null;
+      if(id!==hoverId){hoverId=id;paint()}
+      canvas.style.cursor=u?(floor_busy.get(id)?'not-allowed':'pointer'):'grab';
+      if(u){
+        const b=wrap.getBoundingClientRect();
+        tip.innerHTML=seatTip(u,floor_busy.get(id));placeTip(tip,wrap,e);
+      }else tip.style.opacity=0;
+    });
+  });
+  canvas.addEventListener('pointerleave',()=>{tip.style.opacity=0;if(hoverId){hoverId=null;paint()}});
+  canvas.addEventListener('pointerdown',e=>{downX=e.clientX;downY=e.clientY});
+  canvas.addEventListener('pointerup',e=>{
+    if(Math.hypot(e.clientX-downX,e.clientY-downY)>5)return;
+    const u=pick(e);if(u)chooseSeat(u.id);
+  });
+
+  // camera tween
+  let tw=null;
+  function view(name){
+    const v=VIEWS[name];if(!v)return;
+    if(reduce){cam.position.set(...v.p);ctl.target.set(...v.t);return}
+    tw={t0:performance.now(),dur:700,fp:cam.position.clone(),ft:ctl.target.clone(),tp:new THREE.Vector3(...v.p),tt:new THREE.Vector3(...v.t)};
+  }
+  const ease=x=>1-Math.pow(1-x,4);
+
+  let on=false;onVisible(wrap,v=>on=v);
+  new ResizeObserver(()=>fit(r,cam,wrap)).observe(wrap);fit(r,cam,wrap);
+  (function loop(){
+    requestAnimationFrame(loop);if(!on)return;
+    if(tw){const k=Math.min(1,(performance.now()-tw.t0)/tw.dur),e=ease(k);
+      cam.position.lerpVectors(tw.fp,tw.tp,e);ctl.target.lerpVectors(tw.ft,tw.tt,e);if(k>=1)tw=null}
+    for(const [id,e] of entries){
+      const t=hoverId===id?1:0;
+      if(e.k!==t){e.k+=(t-e.k)*(reduce?1:.2);if(Math.abs(t-e.k)<.002)e.k=t}
+      e.g.position.y=e.k*.55;e.g.scale.setScalar(e.base*(1+e.k*.1));
+      e.pad.position.y=.02-e.g.position.y/e.g.scale.y;
+    }
+    ctl.update();r.render(scene,cam);
+  })();
+  $$('[data-view]',wrap).forEach(b=>b.addEventListener('click',()=>view(b.dataset.view)));
+  paint();
+  return {update(busyMap){busyMap.forEach((v,k)=>floor_busy.set(k,v));paint()},view};
+}
+
+
+/* ---------- seat specs and remaining time ---------- */
+const SPECS={
+  pc:['RTX 4070 12GB / Core i7','32GB RAM / 1TB NVMe','24" 240Hz IPS monitor','Mech keyboard / 1ms mouse'],
+  console:['PS5 disc edition','65" 4K OLED, 120Hz','2 DualSense pads','Couch seats four']
+};
+let bkCache=[];
+function busyUntil(u){
+  for(let h=state.start;h<CLOSE;h++)if(!isBusy(u,state.date,h,1,bkCache))return h;
+  return CLOSE;
+}
+function remainText(u){
+  const until=busyUntil(u);
+  if(until>=CLOSE)return 'Taken until close, 02:00';
+  let t=`Free again at ${hourLabel(until)}`;
+  if(state.date===todayISO){
+    const n=new Date();let nm=n.getHours()*60+n.getMinutes();
+    if(n.getHours()<2)nm+=1440;else if(n.getHours()<OPEN)nm=OPEN*60;
+    const rem=until*60-nm;
+    if(rem>0){const h=Math.floor(rem/60),m=rem%60;t+=` (${h?h+'h ':''}${m}m left)`}
+  }
+  return t;
+}
+function seatTip(u,busy){
+  return [`<b>${u.id}</b> / ${u.zone}`,
+    busy?`<span class="tb">TAKEN</span> ${remainText(u)}`:`<span class="tf">FREE</span> ${inr(u.rate)} per hr`,
+    ...SPECS[u.type]].join('<br>');
+}
+function placeTip(tip,wrap,e){
+  const b=wrap.getBoundingClientRect();
+  tip.style.transform=`translate(${Math.max(0,Math.min(e.clientX-b.left+14,b.width-240))}px,${Math.max(0,Math.min(e.clientY-b.top+14,b.height-150))}px)`;
+  tip.style.opacity=1;
+}
+
+/* ---------- availability + controls ---------- */
+const bindEls=k=>$$(`[data-bind="${k}"]`);
+function buildHoursOptions(){
+  bindEls('hours').forEach(s=>{s.innerHTML=[1,2,3,4,5,6].map(h=>`<option value="${h}">${h} hr${h>1?'s':''}</option>`).join('')});
+}
+function buildStartOptions(){
+  // pick a valid start if the current one is not allowed
+  const ok=h=>h+state.hours<=CLOSE&&!isPast(state.date,h);
+  if(!ok(state.start)){
+    let f=null;for(let h=OPEN;h<=25;h++)if(ok(h)){f=h;break}
+    if(f!==null)state.start=f;
+  }
+  bindEls('start').forEach(s=>{
+    s.innerHTML='';
+    for(let h=OPEN;h<=25;h++){
+      const o=document.createElement('option');o.value=h;o.textContent=hourLabel(h)+(h>=24?' (late)':'');o.disabled=!ok(h);s.append(o);
+    }
+  });
+}
+function syncControls(){
+  bindEls('date').forEach(i=>{i.min=todayISO;const m=new Date(now);m.setDate(m.getDate()+14);i.max=ISO(m);i.value=state.date});
+  bindEls('start').forEach(s=>s.value=state.start);
+  bindEls('hours').forEach(s=>s.value=state.hours);
+}
+const busyMap=new Map();
+function refresh(){
+  buildStartOptions();syncControls();
+  const bk=getBookings();bkCache=bk;
+  UNITS.forEach(u=>busyMap.set(u.id,isBusy(u,state.date,state.start,state.hours,bk)));
+  if(state.sel&&busyMap.get(state.sel)){toast(`${state.sel} is taken for that slot. Pick another seat.`);state.sel=null}
+  const freePC=UNITS.filter(u=>u.type==='pc'&&!busyMap.get(u.id)).length;
+  const freeC=UNITS.filter(u=>u.type==='console'&&!busyMap.get(u.id)).length;
+  $('#avail').textContent=`${hourLabel(state.start)} to ${hourLabel(state.start+state.hours)}: ${freePC} of ${UNITS.filter(u=>u.type==='pc').length} PCs and ${freeC} of ${UNITS.filter(u=>u.type==='console').length} PS5s free.`;
+  if(floor)floor.update(busyMap);
+  renderSeatButtons();renderSelCard();renderSeatSelect();renderSummary();
+}
+document.addEventListener('change',e=>{
+  const k=e.target.dataset&&e.target.dataset.bind;if(!k)return;
+  state[k]=k==='date'?e.target.value||todayISO:Number(e.target.value)||e.target.value;
+  if(k==='date'&&state.date<todayISO)state.date=todayISO;
+  refresh();
+});
+function chooseSeat(id){
+  if(busyMap.get(id)){toast(`${id} is taken for ${hourLabel(state.start)}. Try another seat or time.`);return}
+  state.sel=id;state.type=unitById(id).type;refresh();
+}
+function renderSeatButtons(){
+  const box=$('#seatbtns');
+  box.innerHTML=UNITS.map(u=>{
+    const busy=busyMap.get(u.id),sel=state.sel===u.id;
+    return `<button type="button" class="mono" data-seat="${u.id}" aria-pressed="${sel}" ${busy?'disabled':''} title="${u.id}: ${busy?remainText(u):'free'}" aria-label="${u.id}, ${busy?'taken, '+remainText(u):'free'}">${u.id}</button>`;
+  }).join('');
+}
+$('#seatbtns').addEventListener('click',e=>{const b=e.target.closest('[data-seat]');if(b)chooseSeat(b.dataset.seat)});
+function renderSelCard(){
+  const c=$('#selcard'),u=state.sel&&unitById(state.sel);
+  if(!u){c.innerHTML=`<p>Click a glowing seat on the map, or use the seat list.</p><button class="btn primary" data-open>Open booking window</button>`;return}
+  c.innerHTML=`<div class="big mono">${u.id}</div>
+    <div class="row"><span>Zone</span><b>${u.zone}</b></div>
+    <div class="row"><span>Time</span><b>${hourLabel(state.start)} to ${hourLabel(state.start+state.hours)}</b></div>
+    <div class="row"><span>Rate</span><b>${inr(u.rate)} / hr</b></div>
+    <ul class="specl">${SPECS[u.type].map(x=>`<li>${x}</li>`).join('')}</ul>
+    <button class="btn primary" data-open>Book ${u.id}</button>`;
+}
+
+/* ---------- pricing ---------- */
+function quote(){
+  const u=state.sel&&unitById(state.sel);
+  const rate=u?u.rate:RATE[state.type];
+  const sub=rate*state.hours,disc=state.promo?Math.round(sub*0.1*100)/100:0;
+  const gst=Math.round((sub-disc)*0.18*100)/100;
+  return {rate,sub,disc,gst,total:Math.round((sub-disc+gst)*100)/100};
+}
+function renderSummary(){
+  const q=quote(),u=state.sel&&unitById(state.sel);
+  const d=new Date(state.date+'T00:00');
+  const rows=[
+    ['Seat',u?u.id:`Auto (${state.type==='pc'?'PC':'Console'})`],
+    ['Date',d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})],
+    ['Time',`${hourLabel(state.start)} to ${hourLabel(state.start+state.hours)}`],
+    ['Rate',`${inr(q.rate)} x ${state.hours}`],
+    ['Subtotal',inr(q.sub)]
+  ];
+  if(q.disc)rows.push(['Promo LEVELUP','-'+inr(q.disc)]);
+  rows.push(['GST 18%',inr(q.gst)]);
+  $('#sum').innerHTML=rows.map(([a,b])=>`<div><dt>${a}</dt><dd>${b}</dd></div>`).join('')+`<div class="tot"><dt>Total</dt><dd>${inr(q.total)}</dd></div>`;
+  updateFoot();
+}
+
+/* ---------- booking dialog ---------- */
+const dlg=$('#dlg'),nextBtn=$('#next'),backBtn=$('#back');
+function renderSeatSelect(){
+  const s=$('#seatsel');
+  const opts=UNITS.filter(u=>u.type===state.type&&!busyMap.get(u.id));
+  s.innerHTML=`<option value="">Auto-assign best free ${state.type==='pc'?'PC':'PS5'} (${opts.length} free)</option>`+opts.map(u=>`<option value="${u.id}">${u.id}</option>`).join('');
+  s.value=state.sel&&unitById(state.sel).type===state.type?state.sel:'';
+  $('#qb-type').value=state.type;
+  $$('[data-type]',dlg).forEach(b=>b.setAttribute('aria-pressed',b.dataset.type===state.type));
+}
+$('#seatsel').addEventListener('change',e=>{state.sel=e.target.value||null;refresh()});
+$$('.seg [data-type]',dlg).forEach(b=>b.addEventListener('click',()=>{
+  state.type=b.dataset.type;if(state.sel&&unitById(state.sel).type!==state.type)state.sel=null;refresh();
+}));
+function openBooking(opts={}){
+  if(opts.type){state.type=opts.type;if(state.sel&&unitById(state.sel).type!==opts.type)state.sel=null}
+  if(opts.hours)state.hours=opts.hours;
+  state.step=1;state.busyProc=false;
+  $('#paybanner').hidden=true;
+  refresh();setStep(1);
+  if(!dlg.open)dlg.showModal();
+}
+document.addEventListener('click',e=>{
+  const o=e.target.closest('[data-open]');
+  if(o)openBooking({type:o.dataset.type,hours:o.dataset.hours?Number(o.dataset.hours):undefined});
+  const j=e.target.closest('[data-join]');
+  if(j)toast(`You are on the list for ${j.dataset.join}. Demo only.`);
+});
+$('#dlg-x').addEventListener('click',()=>dlg.close());
+dlg.addEventListener('click',e=>{if(e.target===dlg&&!state.busyProc)dlg.close()});
+dlg.addEventListener('cancel',e=>{if(state.busyProc)e.preventDefault()});
+dlg.addEventListener('close',()=>{if(state.step===4){state.sel=null;state.promo=false;$('#promo').value='';$('#promo-msg').textContent='';}refresh();renderBookings()});
+
+function setStep(n){
+  state.step=n;
+  $$('.step[data-step]',dlg).forEach(s=>s.hidden=Number(s.dataset.step)!==n);
+  $$('#steps li').forEach((li,i)=>li.classList.toggle('on',i<n));
+  backBtn.hidden=n===1||n===4;
+  updateFoot();
+  const first=$(`.step[data-step="${n}"] input:not([type=hidden]),.step[data-step="${n}"] select`,dlg);
+  if(first&&n>1&&n<4)first.focus();
+}
+function updateFoot(){
+  const q=quote(),n=state.step;
+  nextBtn.textContent=n===1?'Continue to details':n===2?'Continue to payment':n===3?(state.pay==='counter'?'Confirm booking':`Pay ${inr(q.total)}`):'Done';
+}
+$('#promo-btn').addEventListener('click',()=>{
+  const v=$('#promo').value.trim().toUpperCase(),m=$('#promo-msg');
+  if(v==='LEVELUP'){state.promo=true;m.textContent='LEVELUP applied, 10% off.';m.className='msg ok'}
+  else{state.promo=false;m.textContent=v?'That code is not valid.':'Enter a code first.';m.className='msg'}
+  renderSummary();
+});
+
+function setErr(id,msg){
+  const i=document.getElementById(id),e=document.getElementById('e-'+id);
+  i.setAttribute('aria-invalid',msg?'true':'false');e.textContent=msg||'';return !msg;
+}
+const vName=()=>setErr('f-name',$('#f-name').value.trim().length>1?'':'Enter your name.');
+const vPhone=()=>setErr('f-phone',/^[6-9]\d{9}$/.test($('#f-phone').value.trim())?'':'Enter a valid 10 digit mobile number.');
+const vEmail=()=>setErr('f-email',!$('#f-email').value||/^\S+@\S+\.\S+$/.test($('#f-email').value)?'':'That email looks off.');
+$('#f-name').addEventListener('blur',vName);$('#f-phone').addEventListener('blur',vPhone);$('#f-email').addEventListener('blur',vEmail);
+$('#f-phone').addEventListener('input',e=>e.target.value=e.target.value.replace(/\D/g,'').slice(0,10));
+
+// payment fields
+const luhn=n=>{let s=0,d=false;for(let i=n.length-1;i>=0;i--){let x=+n[i];if(d){x*=2;if(x>9)x-=9}s+=x;d=!d}return s%10===0};
+$('#p-num').addEventListener('input',e=>{const d=e.target.value.replace(/\D/g,'').slice(0,16);e.target.value=d.replace(/(.{4})/g,'$1 ').trim()});
+$('#p-exp').addEventListener('input',e=>{let d=e.target.value.replace(/\D/g,'').slice(0,4);if(d.length>2)d=d.slice(0,2)+'/'+d.slice(2);e.target.value=d});
+$('#p-cvv').addEventListener('input',e=>e.target.value=e.target.value.replace(/\D/g,'').slice(0,4));
+const vUpi=()=>setErr('p-upi',/^[\w.\-]{2,}@[a-z]{2,}$/i.test($('#p-upi').value.trim())?'':'Enter a UPI ID like name@bank.');
+const vNum=()=>{const d=$('#p-num').value.replace(/\s/g,'');return setErr('p-num',d.length===16&&luhn(d)?'':'Enter a valid 16 digit card number.')};
+const vExp=()=>{
+  const m=$('#p-exp').value.match(/^(\d{2})\/(\d{2})$/);let ok=false;
+  if(m){const mm=+m[1],yy=2000+ +m[2];ok=mm>=1&&mm<=12&&(yy>now.getFullYear()||(yy===now.getFullYear()&&mm>=now.getMonth()+1))}
+  return setErr('p-exp',ok?'':'Use a future date, MM/YY.');
+};
+const vCvv=()=>setErr('p-cvv',/^\d{3,4}$/.test($('#p-cvv').value)?'':'3 or 4 digits.');
+const vCname=()=>setErr('p-cname',$('#p-cname').value.trim().length>1?'':'Enter the name on the card.');
+[['p-upi',vUpi],['p-num',vNum],['p-exp',vExp],['p-cvv',vCvv],['p-cname',vCname]].forEach(([id,f])=>$('#'+id).addEventListener('blur',f));
+$$('[data-pay]',dlg).forEach(b=>b.addEventListener('click',()=>{
+  state.pay=b.dataset.pay;
+  $$('[data-pay]',dlg).forEach(x=>x.setAttribute('aria-pressed',x===b));
+  $$('[data-method]',dlg).forEach(p=>p.hidden=p.dataset.method!==state.pay);
+  $('#paybanner').hidden=true;updateFoot();
+}));
+function validPayment(){
+  if(state.pay==='upi')return vUpi();
+  if(state.pay==='card')return [vNum(),vExp(),vCvv(),vCname()].every(Boolean);
+  return true;
+}
+
+// mock QR
+function drawQR(c,seed,n=25){
+  const x=c.getContext('2d'),s=c.width/n;x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.fillStyle='#111';
+  let h=hash(seed)||1;const rnd=()=>{h^=h<<13;h>>>=0;h^=h>>>17;h^=h<<5;h>>>=0;return h/4294967296};
+  const inF=(i,j)=>(i<8&&j<8)||(i>n-9&&j<8)||(i<8&&j>n-9);
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++)if(!inF(i,j)&&rnd()>.52)x.fillRect(i*s,j*s,s,s);
+  const f=(a,b)=>{x.fillStyle='#111';x.fillRect(a*s,b*s,7*s,7*s);x.fillStyle='#fff';x.fillRect((a+1)*s,(b+1)*s,5*s,5*s);x.fillStyle='#111';x.fillRect((a+2)*s,(b+2)*s,3*s,3*s)};
+  f(0,0);f(n-7,0);f(0,n-7);
+}
+drawQR($('#upi-qr'),'respawn-demo-upi');
+
+function stepError(msg){const e=$('#e-s1');e.textContent=msg}
+function resolveSeat(){
+  let u=state.sel&&unitById(state.sel);
+  if(u&&busyMap.get(u.id))u=null;
+  if(!u)u=UNITS.find(x=>x.type===state.type&&!busyMap.get(x.id));
+  return u||null;
+}
+nextBtn.addEventListener('click',async()=>{
+  if(state.busyProc)return;
+  const n=state.step;
+  if(n===1){
+    stepError('');
+    const u=resolveSeat();
+    if(!u){stepError(`No ${state.type==='pc'?'PC':'PS5'} is free for that slot. Try another time.`);return}
+    state.sel=u.id;refresh();setStep(2);
+  }else if(n===2){
+    if(![vName(),vPhone(),vEmail()].every(Boolean))return;
+    setStep(3);
+  }else if(n===3){
+    await pay();
+  }else dlg.close();
+});
+backBtn.addEventListener('click',()=>{if(state.step>1&&!state.busyProc)setStep(state.step-1)});
+$('#another').addEventListener('click',()=>{state.sel=null;openBooking()});
+
+async function pay(){
+  if(!validPayment())return;
+  const u=unitById(state.sel);
+  if(!u||isBusy(u,state.date,state.start,state.hours)){
+    state.sel=null;refresh();setStep(1);stepError('That seat was just taken. Pick another one.');return;
+  }
+  const q=quote();$('#paybanner').hidden=true;
+  let last4='';
+  if(state.pay!=='counter'){
+    state.busyProc=true;nextBtn.disabled=backBtn.disabled=true;
+    $('#proc').hidden=false;$('#proc-t').textContent=state.pay==='upi'?'Waiting for UPI approval...':'Contacting your bank...';
+    await sleep(reduce?600:1500);
+    $('#proc-t').textContent='Locking your seat...';await sleep(reduce?300:700);
+    const num=$('#p-num').value.replace(/\s/g,'');last4=num.slice(-4);
+    $('#proc').hidden=true;state.busyProc=false;nextBtn.disabled=backBtn.disabled=false;
+    if(state.pay==='card'&&num==='4000000000000002'){
+      const b=$('#paybanner');b.textContent='Your bank declined this card (demo). Try 4242 4242 4242 4242 or another method.';b.hidden=false;return;
+    }
+  }
+  const id='RL-'+Math.random().toString(36).slice(2,8).toUpperCase();
+  const b={id,unit:u.id,zone:u.zone,date:state.date,start:state.start,hours:state.hours,
+    name:$('#f-name').value.trim(),phone:$('#f-phone').value,email:$('#f-email').value,
+    total:q.total,method:state.pay,last4,status:state.pay==='counter'?'Pay at counter':'Paid',created:Date.now()};
+  setBookings([b,...getBookings()]);state.lastBooking=b;
+  showDone(b);
+}
+function showDone(b){
+  $('#done-h').textContent=b.status==='Paid'?'Paid. Seat locked in.':'Seat held for you.';
+  const d=new Date(b.date+'T00:00');
+  $('#tk-dl').innerHTML=[['Booking',b.id],['Seat',`${b.unit} / ${b.zone}`],
+    ['When',`${d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}, ${hourLabel(b.start)} to ${hourLabel(b.start+b.hours)}`],
+    ['Total',`${inr(b.total)} (${b.status}${b.method==='card'?`, card ending ${b.last4}`:b.method==='upi'?', UPI':''})`],
+    ['Player',b.name]].map(([a,v])=>`<dt>${a}</dt><dd>${v}</dd>`).join('');
+  drawQR($('#tk-qr'),b.id);
+  setStep(4);
+  $$('#steps li').forEach(li=>li.classList.add('on'));
+  refresh();
+}
+$('#ics').addEventListener('click',()=>{
+  const b=state.lastBooking;if(!b)return;
+  const [y,m,d]=b.date.split('-').map(Number);
+  const f=dt=>`${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+  const s=new Date(y,m-1,d,b.start),e=new Date(y,m-1,d,b.start+b.hours);
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Respawn Lounge//Demo//EN','BEGIN:VEVENT',`UID:${b.id}@respawn.demo`,
+    `DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').slice(0,15)}Z`,`DTSTART:${f(s)}`,`DTEND:${f(e)}`,
+    `SUMMARY:Gaming session at Respawn Lounge (${b.unit})`,'LOCATION:12 Sector 9\\, Your City','END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'}));a.download=`${b.id}.ics`;a.click();URL.revokeObjectURL(a.href);
+});
+
+/* ---------- my bookings ---------- */
+function renderBookings(){
+  const list=getBookings(),el=$('#bklist');
+  if(!list.length){
+    el.innerHTML=`<div class="empty"><h3>No bookings yet</h3><p>Pick a seat on the 3D map and your session will show up here.</p><button class="btn primary" data-open>Book a seat</button></div>`;
+    if(!$('#pan-extend').hidden)renderExtend();
+    return;
+  }
+  el.innerHTML=`<div class="bk-list">`+list.map(b=>{
+    const d=new Date(b.date+'T00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+    return `<div class="bk"><span class="id mono">${b.id}</span>
+      <div><b>${b.unit} / ${b.zone}</b><small>${d}, ${hourLabel(b.start)} to ${hourLabel(b.start+b.hours)} / ${b.name}</small></div>
+      <div><b>${inr(b.total)}</b><small>${b.status}</small></div>
+      <button class="btn sm" data-cancel="${b.id}">Cancel</button></div>`;
+  }).join('')+`</div>`;
+  if(!$('#pan-extend').hidden)renderExtend();
+}
+document.addEventListener('click',e=>{
+  const c=e.target.closest('[data-cancel]');if(!c)return;
+  const all=getBookings(),b=all.find(x=>x.id===c.dataset.cancel);if(!b)return;
+  setBookings(all.filter(x=>x.id!==b.id));refresh();renderBookings();
+  toast(`Booking ${b.id} cancelled.`,{label:'Undo',fn:()=>{setBookings([b,...getBookings()]);refresh();renderBookings()}});
+});
+
+/* ---------- marquee + reveal ---------- */
+const games=['Valorant','Counter-Strike 2','FIFA 25','Tekken 8','Fortnite','GTA V','Apex Legends','Rocket League','Elden Ring','Mortal Kombat','Dota 2','Minecraft'];
+$('#track').innerHTML=[...games,...games].map(g=>`<span>${g}</span>`).join('');
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.15});
+$$('.rise').forEach(el=>io.observe(el));
+
+/* ---------- shared helpers for the hub ---------- */
+const dateLabel=d=>new Date(d+'T00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+const round2=n=>Math.round(n*100)/100;
+function curHour(){const h=new Date().getHours();return h<2?h+24:h<OPEN?OPEN:h}
+function activeBookings(){
+  const ch=curHour();
+  return getBookings().filter(b=>b.date>todayISO||(b.date===todayISO&&b.start+b.hours>ch));
+}
+function getOrders(){try{return JSON.parse(localStorage.getItem('rl_orders')||'[]')}catch{return[]}}
+function setOrders(o){try{localStorage.setItem('rl_orders',JSON.stringify(o))}catch{}}
+
+/* ---------- quick payment window (demo) ---------- */
+const qd=$('#qdlg');
+let qRes=null,qMethod='upi',qBusy=false;
+function qShow(amount){
+  $$('[data-qm]',qd).forEach(b=>b.setAttribute('aria-pressed',b.dataset.qm===qMethod));
+  $$('[data-qp]',qd).forEach(p=>p.hidden=p.dataset.qp!==qMethod);
+  $('#q-pay').textContent=qMethod==='counter'?'Confirm, pay at counter':`Pay ${inr(amount)}`;
+}
+function quickPay({title,amount,counter=false}){
+  $('#q-title').textContent=title;
+  $('[data-qm="counter"]',qd).hidden=!counter;
+  ['q-upi','q-num','q-exp','q-cvv'].forEach(id=>{$('#'+id).value='';setErr(id,'')});
+  $('#q-banner').hidden=true;qMethod='upi';qd.dataset.amount=amount;qShow(amount);
+  qd.showModal();
+  return new Promise(res=>{qRes=res});
+}
+$$('[data-qm]',qd).forEach(b=>b.addEventListener('click',()=>{qMethod=b.dataset.qm;$('#q-banner').hidden=true;qShow(Number(qd.dataset.amount))}));
+$('#q-num').addEventListener('input',e=>{const d=e.target.value.replace(/\D/g,'').slice(0,16);e.target.value=d.replace(/(.{4})/g,'$1 ').trim()});
+$('#q-exp').addEventListener('input',e=>{let d=e.target.value.replace(/\D/g,'').slice(0,4);if(d.length>2)d=d.slice(0,2)+'/'+d.slice(2);e.target.value=d});
+$('#q-cvv').addEventListener('input',e=>e.target.value=e.target.value.replace(/\D/g,'').slice(0,4));
+function expOk(v){
+  const m=v.match(/^(\d{2})\/(\d{2})$/);if(!m)return false;
+  const mm=+m[1],yy=2000+ +m[2];
+  return mm>=1&&mm<=12&&(yy>now.getFullYear()||(yy===now.getFullYear()&&mm>=now.getMonth()+1));
+}
+function qValid(){
+  if(qMethod==='upi')return setErr('q-upi',/^[\w.\-]{2,}@[a-z]{2,}$/i.test($('#q-upi').value.trim())?'':'Enter a UPI ID like name@bank.');
+  if(qMethod==='card'){
+    const d=$('#q-num').value.replace(/\s/g,'');
+    return [setErr('q-num',d.length===16&&luhn(d)?'':'Enter a valid 16 digit card number.'),
+      setErr('q-exp',expOk($('#q-exp').value)?'':'Use a future date, MM/YY.'),
+      setErr('q-cvv',/^\d{3,4}$/.test($('#q-cvv').value)?'':'3 or 4 digits.')].every(Boolean);
+  }
+  return true;
+}
+$('#q-pay').addEventListener('click',async()=>{
+  if(qBusy||!qValid())return;
+  let last4='';
+  if(qMethod!=='counter'){
+    qBusy=true;$('#q-pay').disabled=true;$('#q-proc').hidden=false;
+    await sleep(reduce?500:1400);
+    const num=$('#q-num').value.replace(/\s/g,'');last4=num.slice(-4);
+    $('#q-proc').hidden=true;qBusy=false;$('#q-pay').disabled=false;
+    if(qMethod==='card'&&num==='4000000000000002'){
+      const b=$('#q-banner');b.textContent='Your bank declined this card (demo). Try 4242 4242 4242 4242 or another method.';b.hidden=false;return;
+    }
+  }
+  const r=qRes;qRes=null;qd.close();if(r)r({method:qMethod,last4});
+});
+qd.addEventListener('close',()=>{if(qRes){const r=qRes;qRes=null;r(null)}});
+qd.addEventListener('cancel',e=>{if(qBusy)e.preventDefault()});
+qd.addEventListener('click',e=>{if(e.target===qd&&!qBusy)qd.close()});
+$('#q-x').addEventListener('click',()=>{if(!qBusy)qd.close()});
+
+/* ---------- hub tabs ---------- */
+const tabs=$$('[role="tab"]');
+function selectTab(name,focus){
+  tabs.forEach(t=>{
+    const on=t.dataset.tab===name;
+    t.setAttribute('aria-selected',on);t.tabIndex=on?0:-1;
+    $('#pan-'+t.dataset.tab).hidden=!on;
+    if(on&&focus)t.focus();
+  });
+  if(name==='food'){renderMenu();renderCart();renderOrders();syncFoodSeat()}
+  if(name==='extend')renderExtend();
+}
+tabs.forEach(t=>{
+  t.addEventListener('click',()=>selectTab(t.dataset.tab));
+  t.addEventListener('keydown',e=>{
+    const i=tabs.indexOf(t);let n=null;
+    if(e.key==='ArrowRight')n=tabs[(i+1)%tabs.length];
+    if(e.key==='ArrowLeft')n=tabs[(i+tabs.length-1)%tabs.length];
+    if(n){e.preventDefault();selectTab(n.dataset.tab,true)}
+  });
+});
+document.addEventListener('click',e=>{const l=e.target.closest('[data-tab-link]');if(l)selectTab(l.dataset.tabLink)});
+
+/* ---------- food ---------- */
+const MENU=[
+  {id:'m1',cat:'Snacks',name:'Peri peri fries',desc:'Crisp, tossed in house spice mix',price:129},
+  {id:'m2',cat:'Snacks',name:'Cheese nachos',desc:'Corn chips, jalapeno, warm cheese dip',price:149},
+  {id:'m3',cat:'Snacks',name:'Chicken popcorn',desc:'Twelve pieces with garlic mayo',price:169},
+  {id:'m4',cat:'Snacks',name:'Masala maggi',desc:'Egg on request, ask at the counter',price:89},
+  {id:'m5',cat:'Meals',name:'Paneer tikka wrap',desc:'Mint chutney, onions, one hand to eat',price:159},
+  {id:'m6',cat:'Meals',name:'Crispy chicken burger',desc:'Brioche bun, slaw, pickles',price:189},
+  {id:'m7',cat:'Meals',name:'Veg fried rice bowl',desc:'Wok tossed with a chilli oil side',price:179},
+  {id:'m8',cat:'Meals',name:'Loaded grilled sandwich',desc:'Corn, cheese, peppers, green chutney',price:139},
+  {id:'m9',cat:'Drinks',name:'Cold coffee',desc:'Thick, with a scoop of ice cream',price:99},
+  {id:'m10',cat:'Drinks',name:'Fresh lime soda',desc:'Sweet, salted or mixed',price:69},
+  {id:'m11',cat:'Drinks',name:'Energy can',desc:'250 ml, served chilled',price:125},
+  {id:'m12',cat:'Drinks',name:'Masala chai',desc:'Kulhad, ginger heavy',price:39},
+  {id:'m13',cat:'Combos',name:'Grinder combo',desc:'Burger, fries and any drink',price:349},
+  {id:'m14',cat:'Combos',name:'Squad platter',desc:'Nachos, popcorn, fries and four drinks',price:699}
+];
+const cart={};let cat='Snacks';
+const menuById=id=>MENU.find(m=>m.id===id);
+function renderMenu(){
+  $('#cats').innerHTML=['Snacks','Meals','Drinks','Combos'].map(c=>`<button type="button" data-cat="${c}" aria-pressed="${c===cat}">${c}</button>`).join('');
+  $('#menu').innerHTML=MENU.filter(m=>m.cat===cat).map(m=>`
+    <div class="menu-row"><div><h4>${m.name}</h4><small>${m.desc}</small></div><b>${inr(m.price)}</b>
+    <div class="stepper"><button type="button" data-dec="${m.id}" aria-label="Remove one ${m.name}">-</button><output aria-live="polite">${cart[m.id]||0}</output><button type="button" data-inc="${m.id}" aria-label="Add one ${m.name}">+</button></div></div>`).join('');
+}
+$('#cats').addEventListener('click',e=>{const b=e.target.closest('[data-cat]');if(b){cat=b.dataset.cat;renderMenu()}});
+$('#menu').addEventListener('click',e=>{
+  const b=e.target.closest('[data-inc],[data-dec]');if(!b)return;
+  const id=b.dataset.inc||b.dataset.dec;
+  cart[id]=Math.max(0,(cart[id]||0)+(b.dataset.inc?1:-1));
+  if(!cart[id])delete cart[id];
+  b.parentElement.querySelector('output').textContent=cart[id]||0;
+  renderCart();
+});
+function cartTotals(){
+  const sub=Object.entries(cart).reduce((s,[id,q])=>s+menuById(id).price*q,0);
+  const gst=round2(sub*0.05);return {sub,gst,total:round2(sub+gst)};
+}
+function renderCart(){
+  const ids=Object.keys(cart),t=cartTotals();
+  $('#cart-lines').innerHTML=ids.length
+    ?ids.map(id=>`<div class="ln"><span>${cart[id]} x ${menuById(id).name}</span><span>${inr(menuById(id).price*cart[id])}</span></div>`).join('')
+      +`<div class="ln m"><span>GST 5%</span><span>${inr(t.gst)}</span></div>`
+    :'<p style="font-size:.9rem">Your tray is empty. Add something from the menu.</p>';
+  $('#cart-tot').textContent=inr(t.total);
+  $('#place').disabled=!ids.length;
+}
+function buildFoodSeats(){
+  $('#food-seat').innerHTML=UNITS.map(u=>`<option value="${u.id}">${u.id} (${u.zone})</option>`).join('');
+}
+function syncFoodSeat(){
+  const a=activeBookings()[0];if(a)$('#food-seat').value=a.unit;
+}
+$('#place').addEventListener('click',async()=>{
+  const ids=Object.keys(cart);if(!ids.length)return;
+  const t=cartTotals(),seat=$('#food-seat').value;
+  let pay={method:'bill',last4:''};
+  if($('#food-pay').value==='now'){
+    const r=await quickPay({title:'Pay for food order',amount:t.total});
+    if(!r)return;pay=r;
+  }
+  const o={id:'FD-'+Math.random().toString(36).slice(2,7).toUpperCase(),seat,
+    items:ids.map(id=>({name:menuById(id).name,qty:cart[id],price:menuById(id).price})),
+    total:t.total,method:pay.method,created:Date.now()};
+  setOrders([o,...getOrders()]);
+  Object.keys(cart).forEach(k=>delete cart[k]);
+  renderMenu();renderCart();renderOrders();
+  toast(`Order ${o.id} placed. Heading to ${seat}.`);
+});
+const STAGES=['Received','Preparing','On the way','Served'];
+const stageOf=o=>{const s=(Date.now()-o.created)/1000;return s<8?0:s<22?1:s<40?2:3};
+const lastStage={};
+function renderOrders(){
+  const list=getOrders(),el=$('#orders');
+  if(!list.length){el.innerHTML='<p>No orders yet. Your first one shows up here with live status.</p>';return}
+  el.innerHTML=list.map(o=>{
+    const st=stageOf(o);
+    return `<div class="order"><div class="top"><b>${o.id} to ${o.seat}</b><b>${inr(o.total)} <small>${o.method==='bill'?'on seat bill':o.method==='upi'?'paid by UPI':'paid by card'}</small></b></div>
+      <small>${o.items.map(i=>`${i.qty} x ${i.name}`).join(', ')}</small>
+      <div class="stg" aria-label="Status: ${STAGES[st]}">${STAGES.map((s,i)=>`<span class="${i<=st?'on':''}">${s}</span>`).join('')}</div></div>`;
+  }).join('');
+}
+setInterval(()=>{
+  const list=getOrders();let changed=false;
+  list.forEach(o=>{const st=stageOf(o);if(lastStage[o.id]!==undefined&&lastStage[o.id]!==st){changed=true;toast(`Order ${o.id}: ${STAGES[st].toLowerCase()}.`)}lastStage[o.id]=st});
+  if(changed&&!$('#pan-food').hidden)renderOrders();
+},2000);
+
+/* ---------- extend session ---------- */
+let extId=null,extHrs=1;
+function extQuote(rate){
+  const sub=rate*extHrs,gst=round2(sub*0.18);return {sub,gst,total:round2(sub+gst)};
+}
+function renderExtend(){
+  const el=$('#ext-body'),list=activeBookings();
+  if(!list.length){
+    el.innerHTML='<div class="empty"><h3>Nothing to extend yet</h3><p>Book a seat first, then come back to add more time without leaving your chair.</p><button class="btn primary" data-open>Book a seat</button></div>';return;
+  }
+  if(!list.find(b=>b.id===extId))extId=list[0].id;
+  const b=list.find(x=>x.id===extId),u=unitById(b.unit);
+  const others=getBookings().filter(x=>x.id!==b.id);
+  const end=b.start+b.hours,newEnd=end+extHrs;
+  let html=`<label class="lab">Booking<select id="ext-b">${list.map(x=>`<option value="${x.id}" ${x.id===b.id?'selected':''}>${x.id}: ${x.unit}, ${dateLabel(x.date)}, ${hourLabel(x.start)} to ${hourLabel(x.start+x.hours)}</option>`).join('')}</select></label>
+    <label class="lab">Add time<select id="ext-h">${[1,2,3].map(h=>`<option value="${h}" ${h===extHrs?'selected':''}>${h} more hr${h>1?'s':''}</option>`).join('')}</select></label>`;
+  if(newEnd>CLOSE){
+    html+='<div class="banner">We close at 02:00, so that is too long. Try fewer hours.</div>';
+  }else if(!isBusy(u,b.date,end,extHrs,others)){
+    const q=extQuote(u.rate);
+    html+=`<div class="note"><b>${u.id} is free</b> until ${hourLabel(newEnd)}. Extra time: ${inr(q.sub)} + GST ${inr(q.gst)} = <b>${inr(q.total)}</b></div>
+      <button class="btn primary" id="ext-go" type="button">Extend and pay</button>`;
+  }else{
+    let max=0;for(let k=extHrs-1;k>=1;k--){if(!isBusy(u,b.date,end,k,others)){max=k;break}}
+    const alt=UNITS.find(a=>a.type===u.type&&a.id!==u.id&&!isBusy(a,b.date,b.start,b.hours+extHrs,others));
+    html+=`<div class="banner">${u.id} is booked right after your slot.${max?` You can add up to ${max} hr${max>1?'s':''} here.`:''}</div>`;
+    if(alt){const q=extQuote(alt.rate);html+=`<div class="note">${alt.id} is free for the whole stretch. Moving there and extending costs <b>${inr(q.total)}</b> with GST.</div>
+      <button class="btn primary" id="ext-move" data-to="${alt.id}" type="button">Move to ${alt.id} and extend</button>`}
+    else html+='<p>No other seat is free that long. Try fewer hours.</p>';
+  }
+  el.innerHTML=html;
+}
+$('#ext-body').addEventListener('change',e=>{
+  if(e.target.id==='ext-b')extId=e.target.value;
+  if(e.target.id==='ext-h')extHrs=Number(e.target.value);
+  renderExtend();
+});
+$('#ext-body').addEventListener('click',e=>{
+  if(e.target.closest('#ext-go'))doExtend(null);
+  const m=e.target.closest('#ext-move');if(m)doExtend(m.dataset.to);
+});
+async function doExtend(moveId){
+  const all=getBookings(),b=all.find(x=>x.id===extId);if(!b)return;
+  const target=moveId?unitById(moveId):unitById(b.unit),q=extQuote(target.rate);
+  const r=await quickPay({title:`Extend ${b.id}`,amount:q.total,counter:true});
+  if(!r)return;
+  const fresh=getBookings(),cur=fresh.find(x=>x.id===b.id);
+  if(!cur){renderExtend();return}
+  const others=fresh.filter(x=>x.id!==b.id);
+  const from=moveId?cur.start:cur.start+cur.hours,len=moveId?cur.hours+extHrs:extHrs;
+  if(isBusy(target,cur.date,from,len,others)||cur.start+cur.hours+extHrs>CLOSE){
+    toast('That seat was just taken. Pick another option.');renderExtend();return;
+  }
+  cur.hours+=extHrs;cur.unit=target.id;cur.zone=target.zone;
+  cur.total=round2(cur.total+q.total);cur.extended=(cur.extended||0)+extHrs;
+  if(r.method==='counter')cur.status='Balance at counter';
+  setBookings(fresh);refresh();renderBookings();renderExtend();
+  toast(`Extended ${cur.id} to ${hourLabel(cur.start+cur.hours)} on ${cur.unit}.`);
+}
+
+/* ---------- v2 components ---------- */
+
+// quick book bar
+$('#qb-go').addEventListener('click',()=>{
+  state.type=$('#qb-type').value;
+  if(state.sel&&unitById(state.sel).type!==state.type)state.sel=null;
+  refresh();
+  const free=UNITS.filter(u=>u.type===state.type&&!busyMap.get(u.id)).length;
+  $('#floor').scrollIntoView({behavior:reduce?'auto':'smooth'});
+  if(floor)floor.view(state.type==='pc'?'rig':'console');
+  toast(`${free} ${state.type==='pc'?'PCs':'PS5s'} free at ${hourLabel(state.start)}. Pick a seat on the map.`);
+});
+
+// zone accordion
+const accPanels=$$('#acc .panel');
+function activatePanel(p){accPanels.forEach(x=>x.classList.toggle('active',x===p))}
+accPanels.forEach(p=>{
+  p.addEventListener('mouseenter',()=>activatePanel(p));
+  p.addEventListener('focusin',()=>activatePanel(p));
+  p.addEventListener('click',()=>activatePanel(p));
+});
+
+// game library
+const GAMES=[
+  ['Valorant','Shooter',['PC'],'1 to 5'],['Counter-Strike 2','Shooter',['PC'],'1 to 5'],
+  ['Apex Legends','Shooter',['PC','PS5'],'1 to 3'],['Fortnite','Shooter',['PC','PS5'],'1 to 4'],
+  ['Call of Duty: Warzone','Shooter',['PC','PS5'],'1 to 4'],
+  ['EA Sports FC 25','Sports',['PC','PS5'],'1 to 2'],['eFootball','Sports',['PC','PS5'],'1 to 2'],
+  ['NBA 2K25','Sports',['PC','PS5'],'1 to 4'],['Rocket League','Sports',['PC','PS5'],'1 to 4'],
+  ['Tekken 8','Fighting',['PC','PS5'],'1 to 2'],['Mortal Kombat 1','Fighting',['PC','PS5'],'1 to 2'],
+  ['Street Fighter 6','Fighting',['PC','PS5'],'1 to 2'],
+  ['Forza Horizon 5','Racing',['PC'],'1 to 4'],['Gran Turismo 7','Racing',['PS5'],'1 to 2'],
+  ['GTA V','Story',['PC','PS5'],'1'],['Elden Ring','Story',['PC','PS5'],'1'],
+  ['God of War Ragnarok','Story',['PS5'],'1'],['Spider-Man 2','Story',['PS5'],'1'],
+  ['Minecraft','Team and co-op',['PC','PS5'],'1 to 4'],['It Takes Two','Team and co-op',['PC','PS5'],'2'],
+  ['Dota 2','Team and co-op',['PC'],'1 to 5'],['Overcooked 2','Team and co-op',['PC','PS5'],'1 to 4']
+];
+const GENRES=['All','Shooter','Sports','Fighting','Racing','Story','Team and co-op'];
+let gPlat='All',gGenre='All',gQ='';
+function renderGames(){
+  $('#ggenre').innerHTML=GENRES.map(g=>`<button type="button" data-g="${g}" aria-pressed="${g===gGenre}">${g}</button>`).join('');
+  const list=GAMES.filter(([n,g,p])=>(gPlat==='All'||p.includes(gPlat))&&(gGenre==='All'||g===gGenre)&&n.toLowerCase().includes(gQ));
+  $('#gamegrid').innerHTML=list.length?list.map(([n,g,p,pl])=>
+    `<div class="g" style="--h:${hash(n)%360}" data-init="${n[0]}"><b>${n}</b><small>${g} / ${p.join(' + ')} / ${pl} players</small></div>`).join('')
+    :`<div class="g-empty"><h3>Nothing matches</h3><p style="margin:8px auto 16px">Try a different genre, or ask the desk. We add titles on request.</p><button class="btn sm" id="greset" type="button">Reset filters</button></div>`;
+}
+$('#gq').addEventListener('input',e=>{gQ=e.target.value.trim().toLowerCase();renderGames()});
+$('#gplat').addEventListener('click',e=>{
+  const b=e.target.closest('[data-p]');if(!b)return;gPlat=b.dataset.p;
+  $$('#gplat button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderGames();
+});
+$('#ggenre').addEventListener('click',e=>{const b=e.target.closest('[data-g]');if(b){gGenre=b.dataset.g;renderGames()}});
+$('#gamegrid').addEventListener('click',e=>{
+  if(!e.target.closest('#greset'))return;
+  gPlat='All';gGenre='All';gQ='';$('#gq').value='';
+  $$('#gplat button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.p==='All'));renderGames();
+});
+
+// tournament countdown + registration
+function nextSat(){
+  const d=new Date();d.setHours(18,0,0,0);
+  d.setDate(d.getDate()+((6-d.getDay()+7)%7));
+  if(d<new Date())d.setDate(d.getDate()+7);
+  return d;
+}
+const cdTarget=nextSat();
+function tickCd(){
+  let s=Math.max(0,Math.floor((cdTarget-new Date())/1000));
+  const d=Math.floor(s/86400);s%=86400;const h=Math.floor(s/3600);s%=3600;const m=Math.floor(s/60);s%=60;
+  $('#cd').innerHTML=[[d,'days'],[h,'hours'],[m,'mins'],[s,'secs']].map(([n,l])=>`<div><b>${pad(n)}</b><span>${l}</span></div>`).join('');
+}
+tickCd();setInterval(tickCd,1000);
+const isReg=()=>{try{return localStorage.getItem('rl_reg')==='1'}catch{return false}};
+function renderReg(){
+  const r=isReg();
+  $('#slots').textContent=`${11-(r?1:0)} of 32 slots left`;
+  $('#reg').textContent=r?'Registered, see you Saturday':'Register your team';
+  $('#reg').disabled=r;
+}
+$('#reg').addEventListener('click',async()=>{
+  const r=await quickPay({title:'Register for Valorant Scrims',amount:590,counter:true});
+  if(!r)return;
+  try{localStorage.setItem('rl_reg','1')}catch{}
+  renderReg();toast('Team registered. Bracket opens Saturday at 6 PM.');
+});
+renderReg();
+
+// leaderboard
+const LB={
+  'Valorant':[['Kairo','Immortal 2',1842],['Zephyr47','Ascendant 3',1766],['Mishti','Ascendant 1',1710],['Dhruv.exe','Diamond 3',1655],['Anika','Diamond 2',1590],['Rudra','Diamond 1',1544]],
+  'FC 25':[['Tanvi_gg','Division 1',1388],['Veer','Division 1',1342],['Kairo','Elite',1297],['Parth','Elite',1251],['Mishti','Division 2',1204],['Aarav','Division 2',1166]],
+  'Tekken 8':[['Rudra','Tekken King',2210],['Dhruv.exe','Fujin',2141],['Anika','Fujin',2078],['Zephyr47','Raijin',1990],['Veer','Raijin',1925],['Tanvi_gg','Garyu',1860]]
+};
+let lbGame='Valorant';
+function renderLb(){
+  $('#lb').innerHTML=LB[lbGame].map(([n,r,p],i)=>`<li><span class="rk">${i+1}</span><span>${n}<small>${r}</small></span><span class="pt mono">${p.toLocaleString('en-IN')}</span></li>`).join('');
+}
+$('#lbtabs').addEventListener('click',e=>{
+  const b=e.target.closest('[data-g]');if(!b)return;lbGame=b.dataset.g;
+  $$('#lbtabs button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderLb();
+});
+renderLb();
+
+// memberships
+const TIERS={
+  rookie:{name:'Rookie',price:0,perks:['Booking history and receipts','Free water refills','Join weekly leaderboards']},
+  pro:{name:'Pro',price:999,perks:['12 PC hours every month','10% off food orders','Book seats 48 hours ahead','Free Night grind upgrade once a month']},
+  legend:{name:'Legend',price:2499,perks:['35 PC hours every month','20% off food orders','One Bootcamp Room hour a month','Reserved corner seats PC-01 to PC-06']}
+};
+let mTier='pro',mBill='monthly';
+const getMember=()=>{try{return JSON.parse(localStorage.getItem('rl_member')||'null')}catch{return null}};
+const mPrice=t=>mBill==='monthly'?TIERS[t].price:Math.round(TIERS[t].price*3*0.85);
+function renderMember(){
+  const t=TIERS[mTier],cur=getMember(),price=mPrice(mTier);
+  $$('#mtabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===mTier));
+  const isCur=cur&&cur.tier===mTier;
+  $('#mbody').innerHTML=`
+    <div class="mprice">${price?inr(price):'Free'}<small>${price?(mBill==='monthly'?' / month':' / 3 months'):''}</small></div>
+    ${mTier==='rookie'?'':`<div class="bill"><span>Billing</span><button type="button" data-b="monthly" aria-pressed="${mBill==='monthly'}">Monthly</button><button type="button" data-b="quarterly" aria-pressed="${mBill==='quarterly'}">Quarterly, save 15%</button></div>`}
+    <ul class="perks">${t.perks.map(p=>`<li>${p}</li>`).join('')}</ul>
+    <button class="btn primary" id="join" type="button" ${isCur?'disabled':''}>${isCur?'Your current plan':price?`Join ${t.name} for ${inr(price)}`:'Join free'}</button>
+    ${cur?`<div class="mstat">You are a ${TIERS[cur.tier].name} member.</div>`:''}`;
+}
+$('#mtabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b){mTier=b.dataset.t;renderMember()}});
+$('#mbody').addEventListener('click',async e=>{
+  const bb=e.target.closest('[data-b]');if(bb){mBill=bb.dataset.b;renderMember();return}
+  if(!e.target.closest('#join'))return;
+  const price=mPrice(mTier);
+  if(price){const r=await quickPay({title:`Join ${TIERS[mTier].name}`,amount:price});if(!r)return}
+  try{localStorage.setItem('rl_member',JSON.stringify({tier:mTier,bill:mBill,since:Date.now()}))}catch{}
+  renderMember();toast(`Welcome to ${TIERS[mTier].name}. Perks are live on your next booking.`);
+});
+renderMember();
+
+// open / closed status
+(function(){
+  const h=new Date().getHours(),open=h>=OPEN||h<2;
+  $('#openstat').textContent=open?'Open now, closes at 02:00':'Closed, opens at 10:00';
+})();
+
+// newsletter
+$('#n-mail').addEventListener('blur',()=>setErr('n-mail',/^\S+@\S+\.\S+$/.test($('#n-mail').value)?'':'Enter a valid email address.'));
+$('#news').addEventListener('submit',e=>{
+  e.preventDefault();
+  if(!setErr('n-mail',/^\S+@\S+\.\S+$/.test($('#n-mail').value)?'':'Enter a valid email address.'))return;
+  $('#n-mail').value='';toast('You are on the list. Demo only, nothing was sent.');
+});
+
+renderGames();
+
+
+/* ---------- boot ---------- */
+buildHoursOptions();
+state.hours=2;
+initHero();
+floor=initFloor();
+buildFoodSeats();
+refresh();
+renderBookings();
+selectTab('food');
+</script>
+</body>
+</html>
